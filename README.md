@@ -22,24 +22,6 @@ centralizando lo que hoy se gestiona informalmente por grupos de WhatsApp.
 - `frontend/` — Aplicación en Flutter Web
 - `docs/` — Documento del proyecto de aula, diagramas y evidencias
 
-## Cómo correr el proyecto
-
-### Backend
-```bash
-cd backend
-python -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
-uvicorn app.main:app --reload
-```
-
-### Frontend
-```bash
-cd frontend
-flutter pub get
-flutter run -d chrome
-```
-
 ## Gestión del proyecto
-- Tablero Jira: [enlace al tablero]
-- Metodología: Scrum (sprints de 1-2 semanas)
+- Tablero Jira: https://jesusandresperez123456.atlassian.net/jira/software/projects/SCRUM/boards/1?filter=&groupBy=none&atlOrigin=eyJpIjoiNDIyNjRlNmNhODg0NDJkNmFhMmMyMmE0YTFkYWEyNTgiLCJwIjoiaiJ9
+
