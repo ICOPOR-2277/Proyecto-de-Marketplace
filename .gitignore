@@ -1,0 +1,15 @@
+# Python / FastAPI
+__pycache__/
+*.pyc
+venv/
+.env
+
+# Flutter
+frontend/build/
+frontend/.dart_tool/
+frontend/.packages
+
+# Editores / SO
+.vscode/
+.idea/
+.DS_Store
