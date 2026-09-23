@@ -1,4 +1,4 @@
-"""Pruebas del router de publicaciones."""
+"""Pruebas del router de búsqueda."""
 
 from fastapi.testclient import TestClient
 
@@ -19,30 +19,32 @@ def setup_function():
     db.close()
 
 
-def test_crear_publicacion_requiere_autenticacion():
+def test_busqueda_filtra_por_query_y_categoria():
     registro = client.post(
         "/usuarios/registro",
-        json={"nombre": "Luis", "correo": "luis@utb.edu.co", "password": "Clave123"},
+        json={"nombre": "Patricia", "correo": "patricia@utb.edu.co", "password": "Clave123"},
     )
     assert registro.status_code == 201
 
-    login = client.post(
+    token = client.post(
         "/usuarios/login",
-        json={"correo": "luis@utb.edu.co", "password": "Clave123"},
-    )
-    token = login.json()["access_token"]
+        json={"correo": "patricia@utb.edu.co", "password": "Clave123"},
+    ).json()["access_token"]
 
     response = client.post(
         "/publicaciones/",
         json={
-            "titulo": "Tutoría de cálculo",
-            "descripcion": "Repaso de integrales y derivadas.",
-            "precio": 50000,
+            "titulo": "Tutoría de cálculo avanzado",
+            "descripcion": "Acompañamiento para exámenes y tareas de cálculo.",
+            "precio": 60000,
             "categoria": "Matemáticas",
         },
         headers={"Authorization": f"Bearer {token}"},
     )
-
     assert response.status_code == 201
-    assert response.json()["titulo"] == "Tutoría de cálculo"
-    assert response.json()["precio"] == 50000
+
+    busqueda = client.get("/busqueda/?query=cálculo&categoria=Matemáticas")
+    assert busqueda.status_code == 200
+    resultados = busqueda.json()
+    assert len(resultados) >= 1
+    assert resultados[0]["titulo"].lower().startswith("tutoría")
