@@ -1,10 +1,19 @@
 """Punto de entrada de la API del marketplace de servicios."""
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
 from app.database import Base, engine
 from app.routers import busqueda, publicaciones, resenas, usuarios
 
 app = FastAPI(title="Marketplace de Servicios UTB")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=False,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 @app.on_event("startup")
