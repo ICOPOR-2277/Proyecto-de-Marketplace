@@ -11,5 +11,6 @@ class Publicacion(Base):
     descripcion = Column(String)
     precio = Column(Float)
     estado = Column(String, default="activa")
-    usuario_id = Column(Integer, ForeignKey("usuarios.id"))
+    usuario_id = Column(Integer, ForeignKey("usuarios.id"), nullable=True)
     categoria_id = Column(Integer, ForeignKey("categorias.id"))
+    imagen_url = Column(String, nullable=True)

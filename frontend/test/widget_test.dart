@@ -4,7 +4,7 @@ import 'package:frontend/main.dart';
 
 void main() {
   testWidgets('Marketplace app loads its main screen', (WidgetTester tester) async {
-    await tester.pumpWidget(const MarketplaceApp());
+    await tester.pumpWidget(const UtbMarketApp());
 
     expect(find.text('Marketplace UTB'), findsOneWidget);
     expect(find.text('Registro / Login'), findsOneWidget);

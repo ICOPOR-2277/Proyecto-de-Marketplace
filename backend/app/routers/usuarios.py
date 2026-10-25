@@ -12,7 +12,7 @@ from typing_extensions import Annotated
 from app.config import SECRET_KEY
 from app.database import get_db
 from app.models.usuario import Usuario
-from app.schemas import Token, UsuarioCreate, UsuarioLogin
+from app.schemas import TokenConUsuario, UsuarioCreate, UsuarioInfo, UsuarioLogin
 
 router = APIRouter()
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/usuarios/login")
@@ -85,12 +85,12 @@ def registrar_usuario(
     }
 
 
-@router.post("/login", response_model=Token)
+@router.post("/login", response_model=TokenConUsuario)
 def iniciar_sesion(
     payload: UsuarioLogin,
     db: Annotated[Session, Depends(get_db)],
 ):
-    correo = payload.correo.lower()
+    correo = payload.correo.lower().strip()
     usuario = db.query(Usuario).filter(Usuario.correo == correo).first()
     if not usuario or not verify_password(payload.password, usuario.password_hash):
         raise HTTPException(
@@ -99,4 +99,13 @@ def iniciar_sesion(
         )
 
     token = create_access_token(correo)
-    return {"access_token": token, "token_type": "bearer"}
+    return {
+        "access_token": token,
+        "token_type": "bearer",
+        "usuario": {
+            "id": usuario.id,
+            "nombre": usuario.nombre,
+            "correo": usuario.correo,
+            "es_administrador": usuario.es_administrador,
+        },
+    }

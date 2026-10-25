@@ -19,6 +19,19 @@ class Token(BaseModel):
     token_type: str = "bearer"
 
 
+class UsuarioInfo(BaseModel):
+    id: int
+    nombre: str
+    correo: str
+    es_administrador: bool
+
+
+class TokenConUsuario(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+    usuario: UsuarioInfo
+
+
 class PublicacionCreate(BaseModel):
     titulo: str = Field(..., min_length=3, max_length=200)
     descripcion: str = Field(..., min_length=10, max_length=2000)
@@ -39,4 +52,21 @@ class PublicacionOut(BaseModel):
     precio: float | None = None
     estado: str
     categoria: str
-    usuario_id: int
+    usuario_id: int | None = None
+    imagen_url: str | None = None
+
+
+class ListingCreate(BaseModel):
+    category: str
+    title: str
+    price: str
+    imageUrl: str | None = None
+
+
+class ListingOut(BaseModel):
+    id: str
+    category: str
+    title: str
+    price: str
+    imageUrl: str | None = None
+    estado: str = "activa"
