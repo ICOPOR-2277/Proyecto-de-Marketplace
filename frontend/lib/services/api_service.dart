@@ -4,7 +4,28 @@ import 'package:image_picker/image_picker.dart';
 import '../models/models.dart';
 
 class ApiService {
-  static const String baseUrl = 'http://127.0.0.1:8000';
+  static String baseUrl = const String.fromEnvironment(
+    'API_BASE_URL',
+    defaultValue: 'http://127.0.0.1:8000',
+  );
+
+  static void setBaseUrl(String url) {
+    baseUrl = url.replaceAll(RegExp(r'/+$'), '');
+  }
+
+  static String? resolveImageUrl(String? rawUrl) {
+    if (rawUrl == null || rawUrl.isEmpty) return null;
+    if (rawUrl.startsWith('/')) {
+      return '$baseUrl$rawUrl';
+    }
+    if (rawUrl.contains('127.0.0.1:8000') || rawUrl.contains('localhost:8000')) {
+      final uri = Uri.tryParse(rawUrl);
+      if (uri != null) {
+        return '$baseUrl${uri.path}';
+      }
+    }
+    return rawUrl;
+  }
 
   static Future<CurrentUser> login(String correo, String password) async {
     final uri = Uri.parse('$baseUrl/usuarios/login');
@@ -158,7 +179,7 @@ class ApiService {
           categoryLabel: item['category'] ?? '',
           title: item['title'] ?? '',
           price: item['price'] ?? '',
-          imageUrl: item['imageUrl'],
+          imageUrl: resolveImageUrl(item['imageUrl']),
           estado: item['estado'] ?? 'activa',
           usuarioId: item['usuario_id'] as int?,
           vendedorNombre: item['vendedor_nombre'] as String?,
@@ -181,7 +202,7 @@ class ApiService {
           categoryLabel: item['categoria'] ?? '',
           title: item['titulo'] ?? '',
           price: precioStr,
-          imageUrl: item['imagen_url'],
+          imageUrl: resolveImageUrl(item['imagen_url']),
           estado: item['estado'] ?? 'activa',
           usuarioId: item['usuario_id'] as int?,
           vendedorNombre: item['vendedor_nombre'] as String?,
@@ -369,7 +390,7 @@ class ApiService {
           categoryLabel: item['category'] ?? item['categoria'] ?? '',
           title: item['title'] ?? item['titulo'] ?? '',
           price: item['price'] ?? '\$${item['precio'] ?? 0}',
-          imageUrl: item['imageUrl'] ?? item['imagen_url'],
+          imageUrl: resolveImageUrl(item['imageUrl'] ?? item['imagen_url']),
           estado: item['estado'] ?? 'activa',
           usuarioId: item['usuario_id'] as int?,
           vendedorNombre: item['vendedor_nombre'] as String?,
