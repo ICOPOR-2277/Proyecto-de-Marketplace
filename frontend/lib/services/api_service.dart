@@ -4,13 +4,33 @@ import 'package:image_picker/image_picker.dart';
 import '../models/models.dart';
 
 class ApiService {
-  static String baseUrl = const String.fromEnvironment(
+  static String _configuredBaseUrl = const String.fromEnvironment(
     'API_BASE_URL',
-    defaultValue: 'http://127.0.0.1:8000',
+    defaultValue: '',
   );
 
   static void setBaseUrl(String url) {
-    baseUrl = url.replaceAll(RegExp(r'/+$'), '');
+    _configuredBaseUrl = url.replaceAll(RegExp(r'/+$'), '');
+  }
+
+  static String get baseUrl {
+    if (_configuredBaseUrl.isNotEmpty) {
+      return _configuredBaseUrl;
+    }
+    try {
+      final origin = Uri.base.origin;
+      if (origin.isNotEmpty && origin.startsWith('http')) {
+        final port = Uri.base.port;
+        if (port == 8000 ||
+            port == 80 ||
+            port == 443 ||
+            Uri.base.host.contains('onrender.com') ||
+            Uri.base.host.contains('render.com')) {
+          return origin;
+        }
+      }
+    } catch (_) {}
+    return 'http://127.0.0.1:8000';
   }
 
   static String? resolveImageUrl(String? rawUrl) {

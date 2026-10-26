@@ -1,7 +1,8 @@
 """Punto de entrada de la API del marketplace de servicios."""
 import os
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
 from app.database import Base, engine
@@ -119,6 +120,18 @@ app.include_router(compras.router, prefix="/compras", tags=["Compras"])
 app.include_router(chat.router, prefix="/chat", tags=["Chat"])
 
 
+# Directorio de la interfaz web de Flutter compilada
+static_frontend_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "static")
+static_index_html = os.path.join(static_frontend_dir, "index.html")
+
+
 @app.get("/")
-def root():
+def root(request: Request):
+    accept = request.headers.get("accept", "")
+    if "text/html" in accept and os.path.isfile(static_index_html):
+        return FileResponse(static_index_html)
     return {"mensaje": "API del marketplace de servicios entre estudiantes"}
+
+
+if os.path.isdir(static_frontend_dir) and os.path.isfile(static_index_html):
+    app.mount("/", StaticFiles(directory=static_frontend_dir, html=True), name="frontend")
