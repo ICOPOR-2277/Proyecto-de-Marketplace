@@ -27,6 +27,8 @@ jobs:
           pip install -r backend/requirements.txt
 
       - name: Ejecutar suite de pruebas Pytest
+        env:
+          PYTHONPATH: backend
         run: |
           pytest backend/tests -v
 
