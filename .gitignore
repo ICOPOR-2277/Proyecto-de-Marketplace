@@ -13,3 +13,8 @@ frontend/.packages
 .vscode/
 .idea/
 .DS_Store
+
+# Pruebas y bases de datos temporales
+*test_marketplace.db*
+*.db-journal
+backend/uploads/*test.png

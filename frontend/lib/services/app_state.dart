@@ -1,6 +1,31 @@
 import 'package:flutter/material.dart';
 import '../models/models.dart';
 
+class AuthSession extends ChangeNotifier {
+  CurrentUser? _user;
+
+  CurrentUser? get user => _user;
+  bool get isAuthenticated => _user != null;
+  bool get isModeratorMode => _user != null && _user!.modoModeradorActivo;
+
+  void setUser(CurrentUser user) {
+    _user = user;
+    notifyListeners();
+  }
+
+  void toggleModeratorMode(bool active) {
+    if (_user != null && _user!.esAdministrador) {
+      _user = _user!.copyWith(modoModeradorActivo: active);
+      notifyListeners();
+    }
+  }
+
+  void logout() {
+    _user = null;
+    notifyListeners();
+  }
+}
+
 class CartState extends ChangeNotifier {
   final List<CartItem> _items = [];
 
@@ -85,5 +110,6 @@ class NotificationState extends ChangeNotifier {
   }
 }
 
+final authSession = AuthSession();
 final cartState = CartState();
 final notificationState = NotificationState();

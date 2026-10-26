@@ -138,6 +138,12 @@ def eliminar_publicacion(
     if not pub:
         raise HTTPException(status_code=404, detail="Publicación no encontrada.")
 
+    from app.models.compra import Compra
+    from app.models.mensaje import Mensaje
+
+    db.query(Mensaje).filter(Mensaje.publicacion_id == pub.id).update({"publicacion_id": None})
+    db.query(Compra).filter(Compra.publicacion_id == pub.id).delete()
+
     db.delete(pub)
     db.commit()
     return {"mensaje": f"Publicación {publicacion_id} eliminada correctamente."}

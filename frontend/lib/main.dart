@@ -8,38 +8,14 @@ import 'screens/cart_dialog.dart';
 import 'screens/notifications_dialog.dart';
 import 'screens/login.dart';
 import 'screens/dashboard.dart';
+import 'screens/chat_dialog.dart';
+import 'screens/my_listings_dialog.dart';
 
 void main() {
   runApp(const UtbMarketApp());
 }
 
-/// Estado global de autenticación en la app
-class AuthSession extends ChangeNotifier {
-  CurrentUser? _user;
 
-  CurrentUser? get user => _user;
-  bool get isAuthenticated => _user != null;
-  bool get isModeratorMode => _user != null && _user!.modoModeradorActivo;
-
-  void setUser(CurrentUser user) {
-    _user = user;
-    notifyListeners();
-  }
-
-  void toggleModeratorMode(bool active) {
-    if (_user != null && _user!.esAdministrador) {
-      _user = _user!.copyWith(modoModeradorActivo: active);
-      notifyListeners();
-    }
-  }
-
-  void logout() {
-    _user = null;
-    notifyListeners();
-  }
-}
-
-final authSession = AuthSession();
 
 class UtbMarketApp extends StatelessWidget {
   const UtbMarketApp({super.key});
@@ -110,8 +86,12 @@ class _UtbMarketHomePageState extends State<UtbMarketHomePage>
       setState(() {
         for (final item in items) {
           if (_listingsByCategory.containsKey(item.categoryLabel)) {
-            if (!_listingsByCategory[item.categoryLabel]!.any((l) => l.id == item.id)) {
-              _listingsByCategory[item.categoryLabel]!.add(item);
+            final list = _listingsByCategory[item.categoryLabel]!;
+            final idx = list.indexWhere((l) => l.id == item.id);
+            if (idx != -1) {
+              list[idx] = item;
+            } else {
+              list.add(item);
             }
           }
         }
@@ -233,6 +213,27 @@ class _TopBar extends StatelessWidget {
                 Text('¡Hola, ${user.nombre.split(" ").first}!',
                     style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
                 const SizedBox(width: 10),
+                ElevatedButton.icon(
+                  onPressed: () {
+                    showDialog(
+                      context: context,
+                      builder: (_) => MyListingsDialog(token: user.token),
+                    );
+                  },
+                  icon: const Icon(Icons.inventory_2_outlined, size: 14),
+                  label: const Text(
+                    'Mis Publicaciones',
+                    style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.white24,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    minimumSize: Size.zero,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                ),
+                const SizedBox(width: 10),
                 if (user.esAdministrador) ...[
                   ElevatedButton.icon(
                     onPressed: () {
@@ -276,6 +277,26 @@ class _TopBar extends StatelessWidget {
                 ),
               ],
               const SizedBox(width: 8),
+
+              // Botón Chat Interactivo con Vendedores
+              IconButton(
+                icon: const Icon(Icons.chat_bubble_outline, color: Colors.white, size: 20),
+                tooltip: 'Chat con Vendedores',
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
+                onPressed: () {
+                  if (!authSession.isAuthenticated) {
+                    _openAuthDialog(context);
+                    return;
+                  }
+                  showDialog(
+                    context: context,
+                    builder: (_) => ChatDialog(currentUser: authSession.user),
+                  );
+                },
+              ),
+
+              const SizedBox(width: 14),
 
               // Botón Notificaciones con insignia activa
               AnimatedBuilder(
@@ -781,6 +802,48 @@ class _CategoryTab extends StatelessWidget {
   });
 
   void _openAddListingSheet(BuildContext context) {
+    if (!authSession.isAuthenticated) {
+      showDialog(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          title: const Row(
+            children: [
+              Icon(Icons.lock_outline, color: Colors.amber, size: 28),
+              SizedBox(width: 10),
+              Text('Inicio de sesión requerido', style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
+            ],
+          ),
+          content: const Text(
+            'Para publicar un artículo debes iniciar sesión con tu cuenta institucional (@utb.edu.co). De esta forma tus compañeros podrán contactarte directamente.',
+            style: TextStyle(fontSize: 13, color: kTextDark),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Cancelar', style: TextStyle(color: kTextGrey)),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.pop(ctx);
+                showDialog(
+                  context: context,
+                  builder: (_) => LoginDialog(
+                    onLoginSuccess: (user) {
+                      authSession.setUser(user);
+                    },
+                  ),
+                );
+              },
+              style: ElevatedButton.styleFrom(backgroundColor: kNavy, foregroundColor: Colors.white),
+              child: const Text('Iniciar Sesión'),
+            ),
+          ],
+        ),
+      );
+      return;
+    }
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -844,17 +907,30 @@ class _ListingCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isBlocked = listing.isBloqueada;
+    final isVendida = listing.isVendida;
+    final isPausada = listing.isPausada;
+    final isUnavailable = isBlocked || isVendida || isPausada;
+
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: kCardBorder),
+        border: Border.all(
+          color: isBlocked
+              ? Colors.red.shade300
+              : isVendida
+                  ? Colors.blueGrey.shade200
+                  : isPausada
+                      ? Colors.orange.shade200
+                      : kCardBorder,
+        ),
       ),
       clipBehavior: Clip.antiAlias,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Expanded(child: _buildImage()),
+          Expanded(child: _buildImage(isBlocked)),
           Padding(
             padding: const EdgeInsets.all(10),
             child: Column(
@@ -864,7 +940,58 @@ class _ListingCard extends StatelessWidget {
                   listing.title,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: kTextDark),
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: isBlocked
+                        ? Colors.red.shade800
+                        : isVendida
+                            ? Colors.blueGrey.shade700
+                            : kTextDark,
+                    decoration: isBlocked ? TextDecoration.lineThrough : null,
+                  ),
+                ),
+                if (isBlocked) ...[
+                  const SizedBox(height: 2),
+                  const Text(
+                    'Bloqueado por moderación',
+                    style: TextStyle(fontSize: 10, color: Colors.red, fontWeight: FontWeight.bold),
+                  ),
+                ] else if (isVendida) ...[
+                  const SizedBox(height: 2),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: Colors.blueGrey.shade50,
+                      borderRadius: BorderRadius.circular(4),
+                      border: Border.all(color: Colors.blueGrey.shade300),
+                    ),
+                    child: const Text(
+                      '✔ VENDIDO',
+                      style: TextStyle(fontSize: 9, color: Colors.blueGrey, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ] else if (isPausada) ...[
+                  const SizedBox(height: 2),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: Colors.orange.shade50,
+                      borderRadius: BorderRadius.circular(4),
+                      border: Border.all(color: Colors.orange.shade300),
+                    ),
+                    child: const Text(
+                      '⏸ PAUSADO',
+                      style: TextStyle(fontSize: 9, color: Colors.orange, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 2),
+                Text(
+                  'Vendedor: ${listing.vendedorNombre ?? "Compañero UTB"}',
+                  style: const TextStyle(fontSize: 10, color: kTextGrey),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 4),
                 Row(
@@ -872,32 +999,187 @@ class _ListingCard extends StatelessWidget {
                   children: [
                     Text(
                       listing.price,
-                      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: kNavy),
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                        color: isUnavailable ? Colors.grey : kNavy,
+                      ),
                     ),
-                    IconButton(
-                      icon: const Icon(Icons.add_shopping_cart, size: 18, color: kNavy),
-                      tooltip: 'Agregar al carrito',
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(),
-                      onPressed: () {
-                        cartState.addItem(listing);
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text('"${listing.title}" agregado al carrito'),
-                            duration: const Duration(seconds: 2),
-                            action: SnackBarAction(
-                              label: 'Ver Carrito',
-                              textColor: kYellow,
-                              onPressed: () {
-                                showDialog(
-                                  context: context,
-                                  builder: (_) => const CartDialog(),
-                                );
-                              },
-                            ),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.chat_bubble_outline, size: 18, color: kNavy),
+                          tooltip: 'Chatear con el vendedor',
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
+                          onPressed: () {
+                            if (!authSession.isAuthenticated) {
+                              showDialog(
+                                context: context,
+                                builder: (ctx) => AlertDialog(
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                  title: const Text('Inicia sesión'),
+                                  content: const Text(
+                                    'Debes iniciar sesión con tu correo @utb.edu.co para chatear con el vendedor.',
+                                  ),
+                                  actions: [
+                                    TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancelar')),
+                                    ElevatedButton(
+                                      onPressed: () {
+                                        Navigator.pop(ctx);
+                                        showDialog(
+                                          context: context,
+                                          builder: (_) => LoginDialog(
+                                            onLoginSuccess: (u) => authSession.setUser(u),
+                                          ),
+                                        );
+                                      },
+                                      style: ElevatedButton.styleFrom(backgroundColor: kNavy, foregroundColor: Colors.white),
+                                      child: const Text('Iniciar Sesión'),
+                                    ),
+                                  ],
+                                ),
+                              );
+                              return;
+                            }
+
+                            showDialog(
+                              context: context,
+                              builder: (_) => ChatDialog(
+                                currentUser: authSession.user,
+                                initialOtherUserId: listing.usuarioId,
+                                initialOtherUserName: listing.vendedorNombre ?? 'Vendedor UTB',
+                                initialPublicationId: int.tryParse(listing.id),
+                                initialPublicationTitle: listing.title,
+                                initialPublicationPrice: listing.price,
+                                initialPublicationImage: listing.imageUrl,
+                                initialIsPublicationBlocked: isBlocked,
+                              ),
+                            );
+                          },
+                        ),
+                        const SizedBox(width: 8),
+                        IconButton(
+                          icon: Icon(
+                            isBlocked
+                                ? Icons.block
+                                : isVendida
+                                    ? Icons.check_circle_outline
+                                    : isPausada
+                                        ? Icons.pause_circle_outline
+                                        : Icons.add_shopping_cart,
+                            size: 18,
+                            color: isBlocked
+                                ? Colors.red
+                                : isVendida
+                                    ? Colors.blueGrey
+                                    : isPausada
+                                        ? Colors.orange
+                                        : kNavy,
                           ),
-                        );
-                      },
+                          tooltip: isBlocked
+                              ? 'No se puede comprar (Bloqueado)'
+                              : isVendida
+                                  ? 'Artículo Vendido'
+                                  : isPausada
+                                      ? 'Publicación Pausada'
+                                      : 'Agregar al carrito',
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
+                          onPressed: () {
+                            if (isBlocked) {
+                              showDialog(
+                                context: context,
+                                builder: (ctx) => AlertDialog(
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                  title: const Row(
+                                    children: [
+                                      Icon(Icons.block, color: Colors.red),
+                                      SizedBox(width: 8),
+                                      Text('Publicación Bloqueada', style: TextStyle(fontSize: 16)),
+                                    ],
+                                  ),
+                                  content: Text(
+                                    'El moderador bloqueó "${listing.title}". Por normas de seguridad no se puede comprar ni agregar al carrito.',
+                                    style: const TextStyle(fontSize: 13),
+                                  ),
+                                  actions: [
+                                    TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Entendido')),
+                                  ],
+                                ),
+                              );
+                              return;
+                            }
+
+                            if (isVendida) {
+                              showDialog(
+                                context: context,
+                                builder: (ctx) => AlertDialog(
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                  title: const Row(
+                                    children: [
+                                      Icon(Icons.inventory, color: Colors.blueGrey),
+                                      SizedBox(width: 8),
+                                      Text('Artículo Vendido', style: TextStyle(fontSize: 16)),
+                                    ],
+                                  ),
+                                  content: Text(
+                                    'El producto "${listing.title}" ya fue adquirido por otro estudiante y no está disponible para compra.',
+                                    style: const TextStyle(fontSize: 13),
+                                  ),
+                                  actions: [
+                                    TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Entendido')),
+                                  ],
+                                ),
+                              );
+                              return;
+                            }
+
+                            if (isPausada) {
+                              showDialog(
+                                context: context,
+                                builder: (ctx) => AlertDialog(
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                  title: const Row(
+                                    children: [
+                                      Icon(Icons.pause_circle_outline, color: Colors.orange),
+                                      SizedBox(width: 8),
+                                      Text('Publicación Pausada', style: TextStyle(fontSize: 16)),
+                                    ],
+                                  ),
+                                  content: Text(
+                                    'El vendedor pausó temporalmente "${listing.title}". No está disponible para compra en este momento.',
+                                    style: const TextStyle(fontSize: 13),
+                                  ),
+                                  actions: [
+                                    TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Entendido')),
+                                  ],
+                                ),
+                              );
+                              return;
+                            }
+
+                            cartState.addItem(listing);
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text('"${listing.title}" agregado al carrito'),
+                                duration: const Duration(seconds: 2),
+                                action: SnackBarAction(
+                                  label: 'Ver Carrito',
+                                  textColor: kYellow,
+                                  onPressed: () {
+                                    showDialog(
+                                      context: context,
+                                      builder: (_) => const CartDialog(),
+                                    );
+                                  },
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                      ],
                     ),
                   ],
                 ),
@@ -909,19 +1191,50 @@ class _ListingCard extends StatelessWidget {
     );
   }
 
-  Widget _buildImage() {
+  Widget _buildImage(bool isBlocked) {
+    Widget img;
     if (listing.imageUrl != null && listing.imageUrl!.isNotEmpty) {
-      return Image.network(
+      img = Image.network(
         listing.imageUrl!,
         fit: BoxFit.cover,
         width: double.infinity,
         errorBuilder: (_, __, ___) => _placeholder(),
       );
+    } else if (listing.imageBytes != null) {
+      img = Image.memory(listing.imageBytes!, fit: BoxFit.cover, width: double.infinity);
+    } else {
+      img = _placeholder();
     }
-    if (listing.imageBytes != null) {
-      return Image.memory(listing.imageBytes!, fit: BoxFit.cover, width: double.infinity);
-    }
-    return _placeholder();
+
+    if (!isBlocked) return img;
+
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        img,
+        Container(color: Colors.black.withOpacity(0.35)),
+        Center(
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(
+              color: Colors.red.shade800,
+              borderRadius: BorderRadius.circular(6),
+            ),
+            child: const Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.block, color: Colors.white, size: 14),
+                SizedBox(width: 4),
+                Text(
+                  'BLOQUEADO',
+                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 10),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
   }
 
   Widget _placeholder() => Container(
@@ -989,6 +1302,7 @@ class _AddListingSheetState extends State<_AddListingSheet> {
         title: title,
         price: price.isEmpty ? 'Gratis' : price,
         imageUrl: imageUrl,
+        token: authSession.user?.token,
       );
 
       widget.onCreated(created);
@@ -1165,19 +1479,21 @@ class _SearchResultsPageState extends State<_SearchResultsPage> {
                   itemCount: _results.length,
                   itemBuilder: (context, index) {
                     final listing = _results[index];
+                    final isBlocked = listing.isBloqueada;
+
                     return Container(
                       margin: const EdgeInsets.only(bottom: 12),
                       decoration: BoxDecoration(
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: kCardBorder),
+                        border: Border.all(color: isBlocked ? Colors.red.shade300 : kCardBorder),
                       ),
-                      padding: const EdgeInsets.all(16),
+                      padding: const EdgeInsets.all(14),
                       child: Row(
                         children: [
                           Container(
-                            width: 52,
-                            height: 52,
+                            width: 54,
+                            height: 54,
                             decoration: BoxDecoration(
                               color: kBg,
                               borderRadius: BorderRadius.circular(8),
@@ -1201,23 +1517,110 @@ class _SearchResultsPageState extends State<_SearchResultsPage> {
                               children: [
                                 Text(
                                   listing.title,
-                                  style: const TextStyle(
-                                      fontWeight: FontWeight.w600,
-                                      fontSize: 14,
-                                      color: kTextDark),
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 14,
+                                    color: isBlocked ? Colors.red.shade800 : kTextDark,
+                                    decoration: isBlocked ? TextDecoration.lineThrough : null,
+                                  ),
                                 ),
                                 const SizedBox(height: 3),
-                                Text(
-                                  listing.categoryLabel,
-                                  style: const TextStyle(fontSize: 12, color: kTextGrey),
+                                Row(
+                                  children: [
+                                    Text(
+                                      '${listing.categoryLabel} • Vendedor: ${listing.vendedorNombre ?? "Compañero UTB"}',
+                                      style: const TextStyle(fontSize: 12, color: kTextGrey),
+                                    ),
+                                    if (isBlocked) ...[
+                                      const SizedBox(width: 8),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                        decoration: BoxDecoration(
+                                          color: Colors.red.shade100,
+                                          borderRadius: BorderRadius.circular(4),
+                                        ),
+                                        child: const Text(
+                                          '🚫 Bloqueado',
+                                          style: TextStyle(color: Colors.red, fontSize: 10, fontWeight: FontWeight.bold),
+                                        ),
+                                      ),
+                                    ],
+                                  ],
                                 ),
                               ],
                             ),
                           ),
+                          const SizedBox(width: 8),
                           Text(
                             listing.price,
-                            style: const TextStyle(
-                                fontWeight: FontWeight.bold, fontSize: 14, color: kNavy),
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                              color: isBlocked ? Colors.grey : kNavy,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          IconButton(
+                            icon: const Icon(Icons.chat_bubble_outline, size: 18, color: kNavy),
+                            tooltip: 'Chatear con vendedor',
+                            onPressed: () {
+                              if (!authSession.isAuthenticated) {
+                                showDialog(
+                                  context: context,
+                                  builder: (ctx) => AlertDialog(
+                                    title: const Text('Inicia sesión'),
+                                    content: const Text('Debes iniciar sesión para chatear con el vendedor.'),
+                                    actions: [
+                                      TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Entendido')),
+                                    ],
+                                  ),
+                                );
+                                return;
+                              }
+                              showDialog(
+                                context: context,
+                                builder: (_) => ChatDialog(
+                                  currentUser: authSession.user,
+                                  initialOtherUserId: listing.usuarioId,
+                                  initialOtherUserName: listing.vendedorNombre ?? 'Vendedor UTB',
+                                  initialPublicationId: int.tryParse(listing.id),
+                                  initialPublicationTitle: listing.title,
+                                  initialPublicationPrice: listing.price,
+                                  initialPublicationImage: listing.imageUrl,
+                                  initialIsPublicationBlocked: isBlocked,
+                                ),
+                              );
+                            },
+                          ),
+                          IconButton(
+                            icon: Icon(
+                              isBlocked ? Icons.block : Icons.add_shopping_cart,
+                              size: 18,
+                              color: isBlocked ? Colors.red : kNavy,
+                            ),
+                            tooltip: isBlocked ? 'Bloqueado por moderación' : 'Agregar al carrito',
+                            onPressed: () {
+                              if (isBlocked) {
+                                showDialog(
+                                  context: context,
+                                  builder: (ctx) => AlertDialog(
+                                    title: const Text('Publicación Bloqueada'),
+                                    content: Text('"${listing.title}" fue bloqueada por un moderador y no se puede comprar.'),
+                                    actions: [
+                                      TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Entendido')),
+                                    ],
+                                  ),
+                                );
+                                return;
+                              }
+                              cartState.addItem(listing);
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text('"${listing.title}" agregado al carrito'),
+                                  duration: const Duration(seconds: 2),
+                                ),
+                              );
+                            },
                           ),
                         ],
                       ),

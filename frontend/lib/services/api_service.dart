@@ -55,7 +55,6 @@ class ApiService {
         if (detail is String) {
           errorMessage = detail;
         } else if (detail is List) {
-          // Extrae errores de validación de Pydantic
           final messages = <String>[];
           for (final item in detail) {
             if (item is Map) {
@@ -106,12 +105,20 @@ class ApiService {
     required String title,
     required String price,
     required String imageUrl,
+    String? token,
   }) async {
     final uri = Uri.parse('$baseUrl/listings/');
+    final headers = <String, String>{
+      'Content-Type': 'application/json',
+    };
+    if (token != null && token.isNotEmpty) {
+      headers['Authorization'] = 'Bearer $token';
+    }
+
     final response = await http
         .post(
           uri,
-          headers: {'Content-Type': 'application/json'},
+          headers: headers,
           body: jsonEncode({
             'category': category,
             'title': title,
@@ -121,7 +128,8 @@ class ApiService {
         )
         .timeout(const Duration(seconds: 8));
     if (response.statusCode != 200 && response.statusCode != 201) {
-      throw Exception('Error creando publicación: ${response.statusCode}');
+      final err = jsonDecode(response.body);
+      throw Exception(err['detail'] ?? 'Error creando publicación');
     }
     final data = jsonDecode(response.body);
     return Listing(
@@ -131,6 +139,8 @@ class ApiService {
       price: data['price'] ?? price,
       imageUrl: data['imageUrl'] ?? imageUrl,
       estado: data['estado'] ?? 'activa',
+      usuarioId: data['usuario_id'] as int?,
+      vendedorNombre: data['vendedor_nombre'] as String?,
     );
   }
 
@@ -150,6 +160,8 @@ class ApiService {
           price: item['price'] ?? '',
           imageUrl: item['imageUrl'],
           estado: item['estado'] ?? 'activa',
+          usuarioId: item['usuario_id'] as int?,
+          vendedorNombre: item['vendedor_nombre'] as String?,
         );
       }).toList();
     }
@@ -171,13 +183,124 @@ class ApiService {
           price: precioStr,
           imageUrl: item['imagen_url'],
           estado: item['estado'] ?? 'activa',
+          usuarioId: item['usuario_id'] as int?,
+          vendedorNombre: item['vendedor_nombre'] as String?,
         );
       }).toList();
     }
     return [];
   }
 
+  // ==========================================
+  // Endpoints para Compras (Requisitos 1 y 2)
+  // ==========================================
+  static Future<List<dynamic>> realizarCompra({
+    required String token,
+    required List<Map<String, dynamic>> items,
+  }) async {
+    final uri = Uri.parse('$baseUrl/compras/');
+    final response = await http
+        .post(
+          uri,
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer $token',
+          },
+          body: jsonEncode({'items': items}),
+        )
+        .timeout(const Duration(seconds: 10));
+
+    if (response.statusCode == 201 || response.statusCode == 200) {
+      return jsonDecode(response.body) as List<dynamic>;
+    } else {
+      final err = jsonDecode(response.body);
+      throw Exception(err['detail'] ?? 'Error al procesar la compra');
+    }
+  }
+
+  static Future<Map<String, dynamic>> validarPublicacion(int publicacionId) async {
+    final uri = Uri.parse('$baseUrl/compras/validar/$publicacionId');
+    final response = await http.get(uri).timeout(const Duration(seconds: 6));
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body) as Map<String, dynamic>;
+    }
+    throw Exception('Error validando disponibilidad de la publicación');
+  }
+
+  // ==========================================
+  // Endpoints para Chat Interactivo (Requisito 3)
+  // ==========================================
+  static Future<List<ChatConversation>> fetchConversations(String token) async {
+    final uri = Uri.parse('$baseUrl/chat/conversaciones');
+    final response = await http.get(
+      uri,
+      headers: {'Authorization': 'Bearer $token'},
+    ).timeout(const Duration(seconds: 8));
+
+    if (response.statusCode == 200) {
+      final List<dynamic> data = jsonDecode(response.body);
+      return data.map((item) => ChatConversation.fromJson(item)).toList();
+    }
+    return [];
+  }
+
+  static Future<List<ChatMessage>> fetchMessages(String token, int otroUsuarioId) async {
+    final uri = Uri.parse('$baseUrl/chat/mensajes/$otroUsuarioId');
+    final response = await http.get(
+      uri,
+      headers: {'Authorization': 'Bearer $token'},
+    ).timeout(const Duration(seconds: 8));
+
+    if (response.statusCode == 200) {
+      final List<dynamic> data = jsonDecode(response.body);
+      return data.map((item) => ChatMessage.fromJson(item)).toList();
+    }
+    return [];
+  }
+
+  static Future<ChatMessage> sendMessage({
+    required String token,
+    required int destinatarioId,
+    required String contenido,
+    int? publicacionId,
+  }) async {
+    final uri = Uri.parse('$baseUrl/chat/mensajes');
+    final response = await http
+        .post(
+          uri,
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer $token',
+          },
+          body: jsonEncode({
+            'destinatario_id': destinatarioId,
+            'contenido': contenido,
+            if (publicacionId != null) ...{'publicacion_id': publicacionId},
+          }),
+        )
+        .timeout(const Duration(seconds: 8));
+
+    if (response.statusCode == 201 || response.statusCode == 200) {
+      return ChatMessage.fromJson(jsonDecode(response.body));
+    }
+    final err = jsonDecode(response.body);
+    throw Exception(err['detail'] ?? 'Error al enviar mensaje');
+  }
+
+  static Future<Map<String, dynamic>> fetchSellerForListing(int publicacionId) async {
+    final uri = Uri.parse('$baseUrl/chat/vendedor-publicacion/$publicacionId');
+    final response = await http.get(uri).timeout(const Duration(seconds: 8));
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body) as Map<String, dynamic>;
+    }
+    throw Exception('Error al obtener vendedor');
+  }
+
+
+
+  // ==========================================
   // Endpoints para Moderador
+  // ==========================================
   static Future<Map<String, dynamic>> fetchModeratorStats(String token) async {
     final uri = Uri.parse('$baseUrl/moderacion/stats');
     final response = await http.get(
@@ -222,9 +345,61 @@ class ApiService {
     final response = await http.delete(
       uri,
       headers: {'Authorization': 'Bearer $token'},
-      ).timeout(const Duration(seconds: 8));
+    ).timeout(const Duration(seconds: 8));
     if (response.statusCode != 200) {
       throw Exception('Error eliminando publicación');
+    }
+  }
+
+  // ==========================================
+  // Endpoints para Mis Publicaciones (Estudiante Vendedor)
+  // ==========================================
+  static Future<List<Listing>> fetchMisPublicaciones(String token) async {
+    final uri = Uri.parse('$baseUrl/publicaciones/mis-publicaciones');
+    final response = await http.get(
+      uri,
+      headers: {'Authorization': 'Bearer $token'},
+    ).timeout(const Duration(seconds: 8));
+
+    if (response.statusCode == 200) {
+      final List<dynamic> data = jsonDecode(response.body);
+      return data.map((item) {
+        return Listing(
+          id: item['id'].toString(),
+          categoryLabel: item['category'] ?? item['categoria'] ?? '',
+          title: item['title'] ?? item['titulo'] ?? '',
+          price: item['price'] ?? '\$${item['precio'] ?? 0}',
+          imageUrl: item['imageUrl'] ?? item['imagen_url'],
+          estado: item['estado'] ?? 'activa',
+          usuarioId: item['usuario_id'] as int?,
+          vendedorNombre: item['vendedor_nombre'] as String?,
+        );
+      }).toList();
+    }
+    throw Exception('Error al cargar mis publicaciones');
+  }
+
+  static Future<void> updateMiPublicacionEstado(String token, int id, String nuevoEstado) async {
+    final uri = Uri.parse('$baseUrl/publicaciones/$id/estado?nuevo_estado=$nuevoEstado');
+    final response = await http.patch(
+      uri,
+      headers: {'Authorization': 'Bearer $token'},
+    ).timeout(const Duration(seconds: 8));
+    if (response.statusCode != 200) {
+      final err = jsonDecode(response.body);
+      throw Exception(err['detail'] ?? 'Error actualizando estado de la publicación');
+    }
+  }
+
+  static Future<void> deleteMiPublicacion(String token, int id) async {
+    final uri = Uri.parse('$baseUrl/publicaciones/$id');
+    final response = await http.delete(
+      uri,
+      headers: {'Authorization': 'Bearer $token'},
+    ).timeout(const Duration(seconds: 8));
+    if (response.statusCode != 200) {
+      final err = jsonDecode(response.body);
+      throw Exception(err['detail'] ?? 'Error al eliminar la publicación');
     }
   }
 }

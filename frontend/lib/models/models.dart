@@ -66,6 +66,8 @@ class Listing {
   final String? imageUrl;
   final Uint8List? imageBytes;
   final String estado;
+  final int? usuarioId;
+  final String? vendedorNombre;
 
   Listing({
     required this.id,
@@ -75,7 +77,14 @@ class Listing {
     this.imageUrl,
     this.imageBytes,
     this.estado = 'activa',
+    this.usuarioId,
+    this.vendedorNombre,
   });
+
+  bool get isBloqueada => estado.toLowerCase() == 'bloqueada';
+  bool get isActiva => estado.toLowerCase() == 'activa';
+  bool get isVendida => estado.toLowerCase() == 'vendida';
+  bool get isPausada => estado.toLowerCase() == 'pausada';
 }
 
 class CartItem {
@@ -116,4 +125,77 @@ class AppNotification {
     required this.time,
     this.read = false,
   });
+}
+
+class ChatMessage {
+  final int id;
+  final int remitenteId;
+  final String remitenteNombre;
+  final int destinatarioId;
+  final String contenido;
+  final String fechaEnvio;
+  final bool leido;
+  final int? publicacionId;
+  final bool esMio;
+
+  ChatMessage({
+    required this.id,
+    required this.remitenteId,
+    required this.remitenteNombre,
+    required this.destinatarioId,
+    required this.contenido,
+    required this.fechaEnvio,
+    required this.leido,
+    this.publicacionId,
+    required this.esMio,
+  });
+
+  factory ChatMessage.fromJson(Map<String, dynamic> json) {
+    return ChatMessage(
+      id: json['id'] as int,
+      remitenteId: json['remitente_id'] as int,
+      remitenteNombre: json['remitente_nombre'] ?? 'Usuario',
+      destinatarioId: json['destinatario_id'] as int,
+      contenido: json['contenido'] ?? '',
+      fechaEnvio: json['fecha_envio'] ?? '',
+      leido: json['leido'] ?? false,
+      publicacionId: json['publicacion_id'] as int?,
+      esMio: json['es_mio'] ?? false,
+    );
+  }
+}
+
+class ChatConversation {
+  final int otroUsuarioId;
+  final String otroUsuarioNombre;
+  final String otroUsuarioCorreo;
+  final String ultimoMensaje;
+  final String fechaUltimoMensaje;
+  final int mensajesNoLeidos;
+  final int? publicacionId;
+  final String? publicacionTitulo;
+
+  ChatConversation({
+    required this.otroUsuarioId,
+    required this.otroUsuarioNombre,
+    required this.otroUsuarioCorreo,
+    required this.ultimoMensaje,
+    required this.fechaUltimoMensaje,
+    required this.mensajesNoLeidos,
+    this.publicacionId,
+    this.publicacionTitulo,
+  });
+
+  factory ChatConversation.fromJson(Map<String, dynamic> json) {
+    return ChatConversation(
+      otroUsuarioId: json['otro_usuario_id'] as int,
+      otroUsuarioNombre: json['otro_usuario_nombre'] ?? 'Usuario',
+      otroUsuarioCorreo: json['otro_usuario_correo'] ?? '',
+      ultimoMensaje: json['ultimo_mensaje'] ?? '',
+      fechaUltimoMensaje: json['fecha_ultimo_mensaje'] ?? '',
+      mensajesNoLeidos: json['mensajes_no_leidos'] ?? 0,
+      publicacionId: json['publicacion_id'] as int?,
+      publicacionTitulo: json['publicacion_titulo'] as String?,
+    );
+  }
 }

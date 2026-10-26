@@ -14,7 +14,7 @@ def setup_function():
     Base.metadata.create_all(bind=engine)
     db = SessionLocal()
     db.query(Resena).delete()
-    db.query(Usuario).delete()
+    db.query(Usuario).filter(Usuario.correo.in_(["miguel@utb.edu.co", "sofia@utb.edu.co"])).delete(synchronize_session=False)
     db.commit()
     db.close()
 

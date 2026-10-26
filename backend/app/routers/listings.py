@@ -4,13 +4,16 @@ import re
 import uuid
 from typing import List, Optional
 
-from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile, status
+from fastapi import APIRouter, Depends, File, Header, HTTPException, Request, UploadFile, status
+from jose import JWTError, jwt
 from sqlalchemy.orm import Session
 from typing_extensions import Annotated
 
+from app.config import SECRET_KEY
 from app.database import get_db
 from app.models.categoria import Categoria
 from app.models.publicacion import Publicacion
+from app.models.usuario import Usuario
 from app.schemas import ListingCreate, ListingOut
 
 router = APIRouter()
@@ -71,8 +74,9 @@ async def upload_image(
 def crear_listing(
     payload: ListingCreate,
     db: Annotated[Session, Depends(get_db)],
+    authorization: Optional[str] = Header(None),
 ):
-    """Crea una publicación en formato listing desde el frontend."""
+    """Crea una publicación en formato listing desde el frontend asociándola al usuario real."""
     nombre_categoria = payload.category.strip()
     categoria = db.query(Categoria).filter(Categoria.nombre.ilike(nombre_categoria)).first()
     if not categoria:
@@ -83,12 +87,33 @@ def crear_listing(
 
     precio_num = parse_price(payload.price)
 
+    # Identificar al usuario real autenticado que está publicando
+    usuario_vendedor = None
+    if authorization and authorization.startswith("Bearer "):
+        token = authorization.split(" ")[1].strip()
+        try:
+            jwt_payload = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
+            email = jwt_payload.get("sub")
+            if email:
+                usuario_vendedor = db.query(Usuario).filter(Usuario.correo == email).first()
+        except JWTError:
+            pass
+
+    if not usuario_vendedor:
+        # Si no hay token, asociar al moderador o primer usuario real
+        usuario_vendedor = (
+            db.query(Usuario).filter(Usuario.correo == "moderador@utb.edu.co").first()
+            or db.query(Usuario).first()
+        )
+
     publicacion = Publicacion(
         titulo=payload.title.strip(),
         descripcion=payload.title.strip(),
         precio=precio_num,
         categoria_id=categoria.id,
         imagen_url=payload.imageUrl,
+        usuario_id=usuario_vendedor.id if usuario_vendedor else None,
+        estado="activa",
     )
     db.add(publicacion)
     db.commit()
@@ -100,6 +125,9 @@ def crear_listing(
         title=publicacion.titulo,
         price=payload.price,
         imageUrl=publicacion.imagen_url,
+        estado=publicacion.estado,
+        usuario_id=publicacion.usuario_id,
+        vendedor_nombre=usuario_vendedor.nombre if usuario_vendedor else "Compañero UTB",
     )
 
 
@@ -109,7 +137,7 @@ def obtener_listings(
     category: Optional[str] = None,
 ):
     """Obtiene la lista de publicaciones para el frontend."""
-    consulta = db.query(Publicacion)
+    consulta = db.query(Publicacion).filter(Publicacion.estado != "eliminada")
     if category and category.strip():
         consulta = consulta.join(Categoria, Publicacion.categoria_id == Categoria.id).filter(
             Categoria.nombre.ilike(f"%{category.strip()}%")
@@ -120,6 +148,10 @@ def obtener_listings(
         categoria_obj = db.query(Categoria).filter(Categoria.id == pub.categoria_id).first()
         cat_nombre = categoria_obj.nombre if categoria_obj else ""
         precio_str = f"${int(pub.precio):,}".replace(",", ".") if pub.precio is not None else "$0"
+        
+        vendedor = db.query(Usuario).filter(Usuario.id == pub.usuario_id).first() if pub.usuario_id else None
+        vendedor_nombre = vendedor.nombre if vendedor else "Compañero UTB"
+
         resultados.append(
             ListingOut(
                 id=str(pub.id),
@@ -127,6 +159,9 @@ def obtener_listings(
                 title=pub.titulo,
                 price=precio_str,
                 imageUrl=pub.imagen_url,
+                estado=pub.estado or "activa",
+                usuario_id=pub.usuario_id,
+                vendedor_nombre=vendedor_nombre,
             )
         )
     return resultados

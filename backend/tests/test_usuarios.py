@@ -12,7 +12,7 @@ client = TestClient(app)
 def setup_function():
     Base.metadata.create_all(bind=engine)
     db = SessionLocal()
-    db.query(Usuario).delete()
+    db.query(Usuario).filter(Usuario.correo == "ana@utb.edu.co").delete()
     db.commit()
     db.close()
 

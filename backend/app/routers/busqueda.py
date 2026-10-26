@@ -10,6 +10,7 @@ from typing_extensions import Annotated
 from app.database import get_db
 from app.models.categoria import Categoria
 from app.models.publicacion import Publicacion
+from app.models.usuario import Usuario
 
 router = APIRouter()
 
@@ -96,6 +97,7 @@ def buscar_publicaciones(
         resultado = []
         for pub in publicaciones:
             categoria_obj = db.query(Categoria).filter(Categoria.id == pub.categoria_id).first()
+            usr = db.query(Usuario).filter(Usuario.id == pub.usuario_id).first() if pub.usuario_id else None
             resultado.append(
                 {
                     "id": pub.id,
@@ -105,6 +107,8 @@ def buscar_publicaciones(
                     "estado": pub.estado,
                     "categoria": categoria_obj.nombre if categoria_obj else "General",
                     "imagen_url": pub.imagen_url,
+                    "usuario_id": pub.usuario_id,
+                    "vendedor_nombre": usr.nombre if usr else "Compañero UTB",
                 }
             )
         return resultado
@@ -115,6 +119,7 @@ def buscar_publicaciones(
     for pub in publicaciones:
         categoria_obj = db.query(Categoria).filter(Categoria.id == pub.categoria_id).first()
         cat_nombre = categoria_obj.nombre if categoria_obj else ""
+        usr = db.query(Usuario).filter(Usuario.id == pub.usuario_id).first() if pub.usuario_id else None
 
         # Evaluar título, descripción y categoría
         coincide_t, score_t = coincide_flexible(query_normalizada, normalizar(pub.titulo))
@@ -134,6 +139,8 @@ def buscar_publicaciones(
                         "estado": pub.estado,
                         "categoria": cat_nombre,
                         "imagen_url": pub.imagen_url,
+                        "usuario_id": pub.usuario_id,
+                        "vendedor_nombre": usr.nombre if usr else "Compañero UTB",
                     },
                 )
             )
