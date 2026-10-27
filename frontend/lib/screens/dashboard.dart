@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../constants/colors.dart';
 import '../services/api_service.dart';
+import '../services/app_state.dart';
 
 class ModeratorDashboardPage extends StatefulWidget {
   final String? token;
@@ -62,6 +63,11 @@ class _ModeratorDashboardPageState extends State<ModeratorDashboardPage> {
     if (token == null) return;
     try {
       await ApiService.updateListingStatus(token, id, nuevoEstado);
+      if (nuevoEstado == 'eliminada') {
+        catalogState.listingRemoved(id);
+      } else {
+        catalogState.listingChanged(id);
+      }
       _loadDashboardData();
     } catch (e) {
       if (mounted) {
@@ -92,6 +98,7 @@ class _ModeratorDashboardPageState extends State<ModeratorDashboardPage> {
     if (confirm == true) {
       try {
         await ApiService.deleteListing(token, id);
+        catalogState.listingRemoved(id);
         _loadDashboardData();
       } catch (e) {
         if (mounted) {
@@ -103,6 +110,9 @@ class _ModeratorDashboardPageState extends State<ModeratorDashboardPage> {
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.sizeOf(context).width;
+    final isMobile = screenWidth < 650;
+
     return Scaffold(
       backgroundColor: kBg,
       appBar: AppBar(
@@ -110,9 +120,12 @@ class _ModeratorDashboardPageState extends State<ModeratorDashboardPage> {
           children: [
             Icon(Icons.admin_panel_settings, color: kYellow),
             SizedBox(width: 8),
-            Text(
-              'Panel de Moderación y Monitoreo UTB',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
+            Expanded(
+              child: Text(
+                'Panel de Moderación UTB',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
+                overflow: TextOverflow.ellipsis,
+              ),
             ),
           ],
         ),
@@ -131,45 +144,49 @@ class _ModeratorDashboardPageState extends State<ModeratorDashboardPage> {
           : _error != null
               ? Center(child: Text('Error: $_error'))
               : SingleChildScrollView(
-                  padding: const EdgeInsets.all(20),
+                  padding: EdgeInsets.all(isMobile ? 12 : 20),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       // Tarjetas de Métricas responsivas
                       Wrap(
-                        spacing: 16,
-                        runSpacing: 16,
+                        spacing: 12,
+                        runSpacing: 12,
                         children: [
                           _buildStatCard(
                             title: 'Total Publicaciones',
                             value: '${_stats?['total_publicaciones'] ?? 0}',
                             icon: Icons.list_alt,
                             color: kNavy,
+                            isMobile: isMobile,
                           ),
                           _buildStatCard(
                             title: 'Publicaciones Activas',
                             value: '${_stats?['publicaciones_activas'] ?? 0}',
                             icon: Icons.check_circle_outline,
                             color: Colors.green,
+                            isMobile: isMobile,
                           ),
                           _buildStatCard(
                             title: 'Bloqueadas / Pausadas',
                             value: '${_stats?['publicaciones_bloqueadas'] ?? 0}',
                             icon: Icons.block,
                             color: Colors.red,
+                            isMobile: isMobile,
                           ),
                           _buildStatCard(
                             title: 'Usuarios Registrados',
                             value: '${_stats?['total_usuarios'] ?? 0}',
                             icon: Icons.people_outline,
                             color: Colors.blueGrey,
+                            isMobile: isMobile,
                           ),
                         ],
                       ),
-                      const SizedBox(height: 28),
+                      const SizedBox(height: 24),
                       const Text(
                         'Monitoreo de Publicaciones en Tiempo Real',
-                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: kTextDark),
+                        style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: kTextDark),
                       ),
                       const SizedBox(height: 12),
                       if (_listings.isEmpty)
@@ -185,9 +202,125 @@ class _ModeratorDashboardPageState extends State<ModeratorDashboardPage> {
                             final estado = item['estado'] as String;
                             final isBloqueada = estado == 'bloqueada';
 
+                            final imageWidget = Container(
+                              width: isMobile ? 52 : 60,
+                              height: isMobile ? 52 : 60,
+                              decoration: BoxDecoration(
+                                color: kBg,
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: item['imagen_url'] != null
+                                  ? ClipRRect(
+                                      borderRadius: BorderRadius.circular(6),
+                                      child: Image.network(
+                                        item['imagen_url'],
+                                        fit: BoxFit.cover,
+                                        errorBuilder: (_, __, ___) =>
+                                            const Icon(Icons.image, color: kTextGrey),
+                                      ),
+                                    )
+                                  : const Icon(Icons.image, color: kTextGrey),
+                            );
+
+                            final infoWidget = Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: Text(
+                                        item['titulo'] ?? '',
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: isMobile ? 14 : 15,
+                                          color: kTextDark,
+                                        ),
+                                        maxLines: 2,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 6),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                                      decoration: BoxDecoration(
+                                        color: isBloqueada ? Colors.red.shade50 : Colors.green.shade50,
+                                        borderRadius: BorderRadius.circular(12),
+                                        border: Border.all(
+                                          color: isBloqueada ? Colors.red.shade300 : Colors.green.shade300,
+                                        ),
+                                      ),
+                                      child: Text(
+                                        estado.toUpperCase(),
+                                        style: TextStyle(
+                                          fontSize: 9,
+                                          fontWeight: FontWeight.bold,
+                                          color: isBloqueada ? Colors.red : Colors.green,
+                                        ),
+                                      ),
+                                    )
+                                  ],
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  '${item['categoria']} • ${item['usuario_nombre'] ?? 'Anónimo'}',
+                                  style: const TextStyle(fontSize: 11, color: kTextGrey),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  'Precio: \$${item['precio'] ?? 0}',
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 13,
+                                    color: kNavy,
+                                  ),
+                                ),
+                              ],
+                            );
+
+                            final actionsWidget = Row(
+                              mainAxisSize: isMobile ? MainAxisSize.max : MainAxisSize.min,
+                              mainAxisAlignment: isMobile ? MainAxisAlignment.end : MainAxisAlignment.start,
+                              children: [
+                                if (isBloqueada)
+                                  ElevatedButton.icon(
+                                    onPressed: () => _changeStatus(id, 'activa'),
+                                    icon: const Icon(Icons.check, size: 14),
+                                    label: const Text('Reactivar', style: TextStyle(fontSize: 11)),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: Colors.green,
+                                      foregroundColor: Colors.white,
+                                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                      minimumSize: Size.zero,
+                                    ),
+                                  )
+                                else
+                                  ElevatedButton.icon(
+                                    onPressed: () => _changeStatus(id, 'bloqueada'),
+                                    icon: const Icon(Icons.block, size: 14),
+                                    label: const Text('Bloquear', style: TextStyle(fontSize: 11)),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: Colors.orange.shade800,
+                                      foregroundColor: Colors.white,
+                                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                      minimumSize: Size.zero,
+                                    ),
+                                  ),
+                                const SizedBox(width: 6),
+                                IconButton(
+                                  icon: const Icon(Icons.delete_outline, color: Colors.red, size: 20),
+                                  tooltip: 'Eliminar permanentemente',
+                                  padding: EdgeInsets.zero,
+                                  constraints: const BoxConstraints(),
+                                  onPressed: () => _delete(id),
+                                )
+                              ],
+                            );
+
                             return Container(
                               margin: const EdgeInsets.only(bottom: 12),
-                              padding: const EdgeInsets.all(16),
+                              padding: EdgeInsets.all(isMobile ? 12 : 16),
                               decoration: BoxDecoration(
                                 color: Colors.white,
                                 borderRadius: BorderRadius.circular(8),
@@ -195,117 +328,34 @@ class _ModeratorDashboardPageState extends State<ModeratorDashboardPage> {
                                   color: isBloqueada ? Colors.red.shade300 : kCardBorder,
                                 ),
                               ),
-                              child: Row(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  // Imagen o ícono
-                                  Container(
-                                    width: 60,
-                                    height: 60,
-                                    decoration: BoxDecoration(
-                                      color: kBg,
-                                      borderRadius: BorderRadius.circular(6),
-                                    ),
-                                    child: item['imagen_url'] != null
-                                        ? ClipRRect(
-                                            borderRadius: BorderRadius.circular(6),
-                                            child: Image.network(
-                                              item['imagen_url'],
-                                              fit: BoxFit.cover,
-                                              errorBuilder: (_, __, ___) =>
-                                                  const Icon(Icons.image, color: kTextGrey),
-                                            ),
-                                          )
-                                        : const Icon(Icons.image, color: kTextGrey),
-                                  ),
-                                  const SizedBox(width: 14),
-                                  Expanded(
-                                    child: Column(
+                              child: isMobile
+                                  ? Column(
                                       crossAxisAlignment: CrossAxisAlignment.start,
                                       children: [
                                         Row(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
                                           children: [
-                                            Expanded(
-                                              child: Text(
-                                                item['titulo'] ?? '',
-                                                style: const TextStyle(
-                                                    fontWeight: FontWeight.bold,
-                                                    fontSize: 15,
-                                                    color: kTextDark),
-                                              ),
-                                            ),
-                                            Container(
-                                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                                              decoration: BoxDecoration(
-                                                color: isBloqueada ? Colors.red.shade50 : Colors.green.shade50,
-                                                borderRadius: BorderRadius.circular(12),
-                                                border: Border.all(
-                                                  color: isBloqueada ? Colors.red.shade300 : Colors.green.shade300,
-                                                ),
-                                              ),
-                                              child: Text(
-                                                estado.toUpperCase(),
-                                                style: TextStyle(
-                                                  fontSize: 10,
-                                                  fontWeight: FontWeight.bold,
-                                                  color: isBloqueada ? Colors.red : Colors.green,
-                                                ),
-                                              ),
-                                            )
+                                            imageWidget,
+                                            const SizedBox(width: 12),
+                                            Expanded(child: infoWidget),
                                           ],
                                         ),
-                                        const SizedBox(height: 4),
-                                        Text(
-                                          'Categoría: ${item['categoria']} | Publicado por: ${item['usuario_nombre'] ?? 'Anónimo'} (${item['usuario_correo'] ?? 'Sin correo'})',
-                                          style: const TextStyle(fontSize: 12, color: kTextGrey),
-                                        ),
-                                        const SizedBox(height: 4),
-                                        Text(
-                                          'Precio: \$${item['precio'] ?? 0}',
-                                          style: const TextStyle(
-                                              fontWeight: FontWeight.bold, fontSize: 13, color: kNavy),
-                                        ),
+                                        const SizedBox(height: 8),
+                                        const Divider(height: 1),
+                                        const SizedBox(height: 6),
+                                        actionsWidget,
+                                      ],
+                                    )
+                                  : Row(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        imageWidget,
+                                        const SizedBox(width: 14),
+                                        Expanded(child: infoWidget),
+                                        const SizedBox(width: 12),
+                                        Column(children: [actionsWidget]),
                                       ],
                                     ),
-                                  ),
-                                  const SizedBox(width: 12),
-                                  // Acciones de moderación
-                                  Column(
-                                    children: [
-                                      if (isBloqueada)
-                                        ElevatedButton.icon(
-                                          onPressed: () => _changeStatus(id, 'activa'),
-                                          icon: const Icon(Icons.check, size: 14),
-                                          label: const Text('Reactivar', style: TextStyle(fontSize: 11)),
-                                          style: ElevatedButton.styleFrom(
-                                            backgroundColor: Colors.green,
-                                            foregroundColor: Colors.white,
-                                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                            minimumSize: Size.zero,
-                                          ),
-                                        )
-                                      else
-                                        ElevatedButton.icon(
-                                          onPressed: () => _changeStatus(id, 'bloqueada'),
-                                          icon: const Icon(Icons.block, size: 14),
-                                          label: const Text('Bloquear', style: TextStyle(fontSize: 11)),
-                                          style: ElevatedButton.styleFrom(
-                                            backgroundColor: Colors.orange.shade800,
-                                            foregroundColor: Colors.white,
-                                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                            minimumSize: Size.zero,
-                                          ),
-                                        ),
-                                      const SizedBox(height: 6),
-                                      IconButton(
-                                        icon: const Icon(Icons.delete_outline, color: Colors.red, size: 20),
-                                        tooltip: 'Eliminar permanentemente',
-                                        onPressed: () => _delete(id),
-                                      )
-                                    ],
-                                  )
-                                ],
-                              ),
                             );
                           },
                         ),
@@ -320,9 +370,10 @@ class _ModeratorDashboardPageState extends State<ModeratorDashboardPage> {
     required String value,
     required IconData icon,
     required Color color,
+    required bool isMobile,
   }) {
     return Container(
-      width: 230,
+      width: isMobile ? double.infinity : 230,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,

@@ -323,36 +323,50 @@ class _CartDialogState extends State<CartDialog> {
         final total = cartState.totalPrice;
         final hasBlockedItems = items.any((i) => i.listing.isBloqueada);
 
+        final size = MediaQuery.of(context).size;
+        final isMobile = size.width < 600;
+
         return Dialog(
+          insetPadding: EdgeInsets.symmetric(
+            horizontal: isMobile ? 12 : 24,
+            vertical: isMobile ? 14 : 24,
+          ),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          child: Container(
-            width: 500,
-            constraints: const BoxConstraints(maxHeight: 600),
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Row(
-                  children: [
-                    const Icon(Icons.shopping_cart, color: kNavy),
-                    const SizedBox(width: 8),
-                    Text(
-                      'Tu Carrito (${cartState.totalItemCount})',
-                      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: kTextDark),
-                    ),
-                    const Spacer(),
-                    if (items.isNotEmpty)
-                      TextButton.icon(
-                        onPressed: () => cartState.clear(),
-                        icon: const Icon(Icons.delete_sweep, size: 16, color: Colors.red),
-                        label: const Text('Vaciar', style: TextStyle(color: Colors.red, fontSize: 12)),
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              maxWidth: 520,
+              maxHeight: size.height * 0.88,
+            ),
+            child: Padding(
+              padding: EdgeInsets.all(isMobile ? 14 : 20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Row(
+                    children: [
+                      const Icon(Icons.shopping_cart, color: kNavy),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Tu Carrito (${cartState.totalItemCount})',
+                        style: TextStyle(
+                          fontSize: isMobile ? 16 : 18,
+                          fontWeight: FontWeight.bold,
+                          color: kTextDark,
+                        ),
                       ),
-                    IconButton(
-                      icon: const Icon(Icons.close, size: 20),
-                      onPressed: () => Navigator.pop(context),
-                    )
-                  ],
-                ),
+                      const Spacer(),
+                      if (items.isNotEmpty)
+                        TextButton.icon(
+                          onPressed: () => cartState.clear(),
+                          icon: const Icon(Icons.delete_sweep, size: 16, color: Colors.red),
+                          label: const Text('Vaciar', style: TextStyle(color: Colors.red, fontSize: 12)),
+                        ),
+                      IconButton(
+                        icon: const Icon(Icons.close, size: 20),
+                        onPressed: () => Navigator.pop(context),
+                      )
+                    ],
+                  ),
                 const Divider(),
 
                 // Alerta de login si no está logueado
@@ -575,8 +589,9 @@ class _CartDialogState extends State<CartDialog> {
               ],
             ),
           ),
-        );
-      },
-    );
+        ),
+      );
+    },
+  );
   }
 }

@@ -2,7 +2,7 @@
 from datetime import datetime
 from typing import List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import or_, and_
 from sqlalchemy.orm import Session
 from typing_extensions import Annotated
@@ -101,7 +101,12 @@ def listar_conversaciones(
     db: Annotated[Session, Depends(get_db)],
     usuario_actual: Annotated[Usuario, Depends(get_current_user)],
 ):
-    """Lista todas las conversaciones activas del usuario autenticado."""
+    """Lista las conversaciones del usuario autenticado.
+
+    Cada conversación es un hilo independiente identificado por la clave
+    compuesta ``(otro_usuario_id, publicacion_id)``: hablar con el mismo
+    vendedor sobre dos publicaciones distintas produce dos hilos separados.
+    """
     # Obtener todos los mensajes donde participa el usuario actual
     mensajes = (
         db.query(Mensaje)
@@ -111,52 +116,67 @@ def listar_conversaciones(
                 Mensaje.destinatario_id == usuario_actual.id,
             )
         )
-        .order_by(Mensaje.fecha_envio.asc())
+        .order_by(Mensaje.fecha_envio.asc(), Mensaje.id.asc())
         .all()
     )
 
-    # Agrupar por el otro usuario
-    conversaciones_map = {}
+    # Agrupar por (otro usuario, publicación)
+    conversaciones_map: dict = {}
     for m in mensajes:
         otro_id = m.destinatario_id if m.remitente_id == usuario_actual.id else m.remitente_id
-        if otro_id not in conversaciones_map:
-            conversaciones_map[otro_id] = {
-                "ultimo_mensaje": m.contenido,
-                "fecha_ultimo_mensaje": m.fecha_envio,
-                "no_leidos": 0,
+        clave = (otro_id, m.publicacion_id)
+        info = conversaciones_map.get(clave)
+        if info is None:
+            info = {
+                "otro_id": otro_id,
                 "publicacion_id": m.publicacion_id,
+                "no_leidos": 0,
             }
-        else:
-            conversaciones_map[otro_id]["ultimo_mensaje"] = m.contenido
-            conversaciones_map[otro_id]["fecha_ultimo_mensaje"] = m.fecha_envio
-            if m.publicacion_id:
-                conversaciones_map[otro_id]["publicacion_id"] = m.publicacion_id
+            conversaciones_map[clave] = info
+
+        # Los mensajes vienen ordenados ascendentemente: el último gana
+        info["ultimo_mensaje"] = m.contenido
+        info["fecha_ultimo_mensaje"] = m.fecha_envio
+        info["ultimo_mensaje_id"] = m.id
 
         if m.destinatario_id == usuario_actual.id and not m.leido:
-            conversaciones_map[otro_id]["no_leidos"] += 1
+            info["no_leidos"] += 1
 
+    usuarios_cache: dict = {}
+    publicaciones_cache: dict = {}
     resultados = []
-    for otro_id, info in conversaciones_map.items():
-        otro_usr = db.query(Usuario).filter(Usuario.id == otro_id).first()
+    for info in conversaciones_map.values():
+        otro_id = info["otro_id"]
+        if otro_id not in usuarios_cache:
+            usuarios_cache[otro_id] = db.query(Usuario).filter(Usuario.id == otro_id).first()
+        otro_usr = usuarios_cache[otro_id]
         if not otro_usr:
             continue
 
-        pub_titulo = None
-        if info["publicacion_id"]:
-            pub = db.query(Publicacion).filter(Publicacion.id == info["publicacion_id"]).first()
-            if pub:
-                pub_titulo = pub.titulo
+        pub = None
+        pub_id = info["publicacion_id"]
+        if pub_id:
+            if pub_id not in publicaciones_cache:
+                publicaciones_cache[pub_id] = (
+                    db.query(Publicacion).filter(Publicacion.id == pub_id).first()
+                )
+            pub = publicaciones_cache[pub_id]
 
+        fecha = info["fecha_ultimo_mensaje"]
         resultados.append(
             ConversacionOut(
                 otro_usuario_id=otro_usr.id,
                 otro_usuario_nombre=otro_usr.nombre,
                 otro_usuario_correo=otro_usr.correo,
                 ultimo_mensaje=info["ultimo_mensaje"],
-                fecha_ultimo_mensaje=info["fecha_ultimo_mensaje"].isoformat(),
+                fecha_ultimo_mensaje=fecha.isoformat() if fecha else "",
                 mensajes_no_leidos=info["no_leidos"],
-                publicacion_id=info["publicacion_id"],
-                publicacion_titulo=pub_titulo,
+                publicacion_id=pub_id,
+                publicacion_titulo=pub.titulo if pub else None,
+                precio=pub.precio if pub else None,
+                imagen_url=pub.imagen_url if pub else None,
+                estado=(pub.estado or "activa") if pub else None,
+                ultimo_mensaje_id=info["ultimo_mensaje_id"],
             )
         )
 
@@ -170,31 +190,46 @@ def obtener_mensajes_conversacion(
     otro_usuario_id: int,
     db: Annotated[Session, Depends(get_db)],
     usuario_actual: Annotated[Usuario, Depends(get_current_user)],
+    publicacion_id: Optional[int] = Query(
+        None,
+        description="Si se envía, devuelve solo el hilo de esa publicación.",
+    ),
+    hilo_general: bool = Query(
+        False,
+        description="Si es true (y no se envía publicacion_id), devuelve solo los "
+        "mensajes que no están asociados a ninguna publicación.",
+    ),
 ):
-    """Obtiene el historial completo de mensajes entre el usuario actual y el otro usuario."""
+    """Obtiene el historial de mensajes entre el usuario actual y el otro usuario.
+
+    - ``publicacion_id`` presente: hilo estricto de esa publicación (puede ser ``[]``).
+    - ``hilo_general=true``: solo mensajes sin publicación asociada.
+    - Sin parámetros: historial completo (retrocompatibilidad).
+    """
     otro_usr = db.query(Usuario).filter(Usuario.id == otro_usuario_id).first()
     if not otro_usr:
         raise HTTPException(status_code=404, detail="Usuario no encontrado.")
 
-    mensajes = (
-        db.query(Mensaje)
-        .filter(
-            or_(
-                and_(
-                    Mensaje.remitente_id == usuario_actual.id,
-                    Mensaje.destinatario_id == otro_usuario_id,
-                ),
-                and_(
-                    Mensaje.remitente_id == otro_usuario_id,
-                    Mensaje.destinatario_id == usuario_actual.id,
-                ),
-            )
+    consulta = db.query(Mensaje).filter(
+        or_(
+            and_(
+                Mensaje.remitente_id == usuario_actual.id,
+                Mensaje.destinatario_id == otro_usuario_id,
+            ),
+            and_(
+                Mensaje.remitente_id == otro_usuario_id,
+                Mensaje.destinatario_id == usuario_actual.id,
+            ),
         )
-        .order_by(Mensaje.fecha_envio.asc())
-        .all()
     )
+    if publicacion_id is not None:
+        consulta = consulta.filter(Mensaje.publicacion_id == publicacion_id)
+    elif hilo_general:
+        consulta = consulta.filter(Mensaje.publicacion_id.is_(None))
 
-    # Marcar como leídos los que recibió el usuario actual
+    mensajes = consulta.order_by(Mensaje.fecha_envio.asc(), Mensaje.id.asc()).all()
+
+    # Marcar como leídos los que recibió el usuario actual (solo de este hilo)
     hay_cambios = False
     for m in mensajes:
         if m.destinatario_id == usuario_actual.id and not m.leido:
@@ -224,5 +259,6 @@ def obtener_mensajes_conversacion(
         )
 
     return resultados
+
 
 

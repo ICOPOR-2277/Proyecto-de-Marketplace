@@ -226,3 +226,143 @@ def test_requerimiento_3_chat_interactivo():
     # El último mensaje fue enviado por el vendedor
     assert mensajes[-1]["remitente_id"] == vendedor_id
     assert mensajes[-1]["es_mio"] is False
+
+
+def _crear_publicacion(titulo: str, vendedor_correo: str = "vendedor_test@utb.edu.co") -> int:
+    """Crea (o reutiliza) una publicación activa del vendedor de pruebas y retorna su id."""
+    db = SessionLocal()
+    try:
+        vendedor = db.query(Usuario).filter(Usuario.correo == vendedor_correo).first()
+        cat = db.query(Categoria).filter(Categoria.nombre == "TestCat").first()
+        pub = db.query(Publicacion).filter(Publicacion.titulo == titulo).first()
+        if not pub:
+            pub = Publicacion(
+                titulo=titulo,
+                descripcion=f"Descripción de {titulo}",
+                precio=30000.0,
+                estado="activa",
+                usuario_id=vendedor.id,
+                categoria_id=cat.id,
+            )
+            db.add(pub)
+            db.commit()
+            db.refresh(pub)
+        return pub.id
+    finally:
+        db.close()
+
+
+def _login(correo: str) -> tuple[str, int]:
+    res = client.post("/usuarios/login", json={"correo": correo, "password": "clave12345"})
+    assert res.status_code == 200
+    return res.json()["access_token"], res.json()["usuario"]["id"]
+
+
+def test_chat_independiente_por_publicacion_mismo_vendedor():
+    """Dos publicaciones del mismo vendedor generan hilos e historiales independientes."""
+    token_comp, comprador_id = _login("comprador_test@utb.edu.co")
+    token_vend, vendedor_id = _login("vendedor_test@utb.edu.co")
+    h_comp = {"Authorization": f"Bearer {token_comp}"}
+    h_vend = {"Authorization": f"Bearer {token_vend}"}
+
+    pub_a = _crear_publicacion("Calculadora Hilo A")
+    pub_b = _crear_publicacion("Mesa Hilo B")
+    pub_nueva = _crear_publicacion("Lampara Sin Chat C")
+
+    # Comprador escribe sobre la publicación A y luego sobre la B
+    r1 = client.post(
+        "/chat/mensajes",
+        headers=h_comp,
+        json={"destinatario_id": vendedor_id, "contenido": "Pregunta sobre A", "publicacion_id": pub_a},
+    )
+    assert r1.status_code == 201
+    r2 = client.post(
+        "/chat/mensajes",
+        headers=h_comp,
+        json={"destinatario_id": vendedor_id, "contenido": "Pregunta sobre B", "publicacion_id": pub_b},
+    )
+    assert r2.status_code == 201
+
+    # Historial del hilo A contiene solo mensajes de A
+    hilo_a = client.get(f"/chat/mensajes/{vendedor_id}", headers=h_comp, params={"publicacion_id": pub_a})
+    assert hilo_a.status_code == 200
+    msgs_a = hilo_a.json()
+    assert len(msgs_a) >= 1
+    assert all(m["publicacion_id"] == pub_a for m in msgs_a)
+    assert any(m["contenido"] == "Pregunta sobre A" for m in msgs_a)
+    assert not any(m["contenido"] == "Pregunta sobre B" for m in msgs_a)
+
+    # Historial del hilo B contiene solo mensajes de B
+    hilo_b = client.get(f"/chat/mensajes/{vendedor_id}", headers=h_comp, params={"publicacion_id": pub_b})
+    msgs_b = hilo_b.json()
+    assert all(m["publicacion_id"] == pub_b for m in msgs_b)
+    assert any(m["contenido"] == "Pregunta sobre B" for m in msgs_b)
+    assert not any(m["contenido"] == "Pregunta sobre A" for m in msgs_b)
+
+    # Una publicación nueva del mismo vendedor sin mensajes inicia vacía
+    hilo_nuevo = client.get(
+        f"/chat/mensajes/{vendedor_id}", headers=h_comp, params={"publicacion_id": pub_nueva}
+    )
+    assert hilo_nuevo.status_code == 200
+    assert hilo_nuevo.json() == []
+
+    # La bandeja del comprador muestra dos hilos separados con el mismo vendedor
+    convs = client.get("/chat/conversaciones", headers=h_comp).json()
+    hilos_vendedor = [c for c in convs if c["otro_usuario_id"] == vendedor_id]
+    pubs_en_bandeja = {c["publicacion_id"] for c in hilos_vendedor}
+    assert pub_a in pubs_en_bandeja
+    assert pub_b in pubs_en_bandeja
+    conv_a = next(c for c in hilos_vendedor if c["publicacion_id"] == pub_a)
+    conv_b = next(c for c in hilos_vendedor if c["publicacion_id"] == pub_b)
+    assert conv_a["publicacion_titulo"] == "Calculadora Hilo A"
+    assert conv_b["publicacion_titulo"] == "Mesa Hilo B"
+    assert conv_a["ultimo_mensaje"] == "Pregunta sobre A"
+    assert conv_b["ultimo_mensaje"] == "Pregunta sobre B"
+    assert conv_a["precio"] == 30000.0
+    assert conv_a["estado"] == "activa"
+    assert pub_nueva not in pubs_en_bandeja
+
+    # Para el vendedor cada hilo cuenta sus no leídos por separado
+    convs_vend = client.get("/chat/conversaciones", headers=h_vend).json()
+    v_a = next(c for c in convs_vend if c["otro_usuario_id"] == comprador_id and c["publicacion_id"] == pub_a)
+    v_b = next(c for c in convs_vend if c["otro_usuario_id"] == comprador_id and c["publicacion_id"] == pub_b)
+    assert v_a["mensajes_no_leidos"] >= 1
+    assert v_b["mensajes_no_leidos"] >= 1
+
+    # Leer solo el hilo A no marca como leído el hilo B
+    client.get(f"/chat/mensajes/{comprador_id}", headers=h_vend, params={"publicacion_id": pub_a})
+    convs_vend = client.get("/chat/conversaciones", headers=h_vend).json()
+    v_a = next(c for c in convs_vend if c["otro_usuario_id"] == comprador_id and c["publicacion_id"] == pub_a)
+    v_b = next(c for c in convs_vend if c["otro_usuario_id"] == comprador_id and c["publicacion_id"] == pub_b)
+    assert v_a["mensajes_no_leidos"] == 0
+    assert v_b["mensajes_no_leidos"] >= 1
+
+    # Retrocompatibilidad: sin publicacion_id devuelve el historial completo
+    completo = client.get(f"/chat/mensajes/{vendedor_id}", headers=h_comp).json()
+    contenidos = {m["contenido"] for m in completo}
+    assert {"Pregunta sobre A", "Pregunta sobre B"} <= contenidos
+
+
+def test_chat_hilo_general_excluye_mensajes_de_publicaciones():
+    """hilo_general=true devuelve solo mensajes sin publicación asociada."""
+    token_comp, _ = _login("comprador_test@utb.edu.co")
+    _, vendedor_id = _login("vendedor_test@utb.edu.co")
+    h_comp = {"Authorization": f"Bearer {token_comp}"}
+    pub_a = _crear_publicacion("Calculadora Hilo A")
+
+    client.post(
+        "/chat/mensajes",
+        headers=h_comp,
+        json={"destinatario_id": vendedor_id, "contenido": "Mensaje general sin pub"},
+    )
+    client.post(
+        "/chat/mensajes",
+        headers=h_comp,
+        json={"destinatario_id": vendedor_id, "contenido": "Mensaje de A", "publicacion_id": pub_a},
+    )
+
+    general = client.get(
+        f"/chat/mensajes/{vendedor_id}", headers=h_comp, params={"hilo_general": "true"}
+    ).json()
+    assert any(m["contenido"] == "Mensaje general sin pub" for m in general)
+    assert all(m["publicacion_id"] is None for m in general)

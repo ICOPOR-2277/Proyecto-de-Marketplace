@@ -130,4 +130,9 @@ class ConversacionOut(BaseModel):
     mensajes_no_leidos: int
     publicacion_id: int | None = None
     publicacion_titulo: str | None = None
+    # Contexto de la publicación del hilo (cada publicación = hilo independiente)
+    precio: float | None = None
+    imagen_url: str | None = None
+    estado: str | None = None
+    ultimo_mensaje_id: int | None = None
 

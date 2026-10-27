@@ -206,7 +206,9 @@ class ApiService {
         );
       }).toList();
     }
-    return [];
+    // Lanzar en lugar de devolver [] para que la sincronización periódica no
+    // confunda un error transitorio con "todas las publicaciones fueron eliminadas".
+    throw Exception('Error cargando publicaciones (${response.statusCode})');
   }
 
   static Future<List<Listing>> searchListings(String query) async {
@@ -280,13 +282,30 @@ class ApiService {
 
     if (response.statusCode == 200) {
       final List<dynamic> data = jsonDecode(response.body);
-      return data.map((item) => ChatConversation.fromJson(item)).toList();
+      return data.map((item) {
+        final map = Map<String, dynamic>.from(item as Map);
+        map['imagen_url'] = resolveImageUrl(map['imagen_url'] as String?);
+        return ChatConversation.fromJson(map);
+      }).toList();
     }
     return [];
   }
 
-  static Future<List<ChatMessage>> fetchMessages(String token, int otroUsuarioId) async {
-    final uri = Uri.parse('$baseUrl/chat/mensajes/$otroUsuarioId');
+  /// Obtiene los mensajes con [otroUsuarioId].
+  ///
+  /// - Si [publicacionId] se envía, solo devuelve el hilo de esa publicación.
+  /// - Si [hiloGeneral] es true (y no hay publicación), solo los mensajes sin publicación.
+  /// - Sin ninguno, devuelve el historial completo (retrocompatible).
+  static Future<List<ChatMessage>> fetchMessages(
+    String token,
+    int otroUsuarioId, {
+    int? publicacionId,
+    bool hiloGeneral = false,
+  }) async {
+    final query = publicacionId != null
+        ? '?publicacion_id=$publicacionId'
+        : (hiloGeneral ? '?hilo_general=true' : '');
+    final uri = Uri.parse('$baseUrl/chat/mensajes/$otroUsuarioId$query');
     final response = await http.get(
       uri,
       headers: {'Authorization': 'Bearer $token'},

@@ -6,6 +6,7 @@ from typing import List, Optional
 
 from fastapi import APIRouter, Depends, File, Header, HTTPException, Request, UploadFile, status
 from jose import JWTError, jwt
+from sqlalchemy import or_
 from sqlalchemy.orm import Session
 from typing_extensions import Annotated
 
@@ -137,7 +138,9 @@ def obtener_listings(
     category: Optional[str] = None,
 ):
     """Obtiene la lista de publicaciones para el frontend."""
-    consulta = db.query(Publicacion).filter(Publicacion.estado != "eliminada")
+    consulta = db.query(Publicacion).filter(
+        or_(Publicacion.estado.is_(None), Publicacion.estado != "eliminada")
+    )
     if category and category.strip():
         consulta = consulta.join(Categoria, Publicacion.categoria_id == Categoria.id).filter(
             Categoria.nombre.ilike(f"%{category.strip()}%")

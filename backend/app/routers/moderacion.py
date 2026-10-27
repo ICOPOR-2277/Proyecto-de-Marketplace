@@ -3,6 +3,7 @@ from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
+from sqlalchemy import or_
 from sqlalchemy.orm import Session
 from typing_extensions import Annotated
 
@@ -13,6 +14,11 @@ from app.models.usuario import Usuario
 from app.routers.usuarios import get_current_user
 
 router = APIRouter()
+
+
+def _no_eliminada():
+    """Condición SQL: publicación visible (estado NULL se considera 'activa')."""
+    return or_(Publicacion.estado.is_(None), Publicacion.estado != "eliminada")
 
 
 class ModeracionEstadoUpdate(BaseModel):
@@ -57,11 +63,11 @@ def obtener_estadisticas_moderacion(
     _: Annotated[Usuario, Depends(verificar_moderador)],
 ):
     """Estadísticas globales para el Dashboard de moderación."""
-    total_publicaciones = db.query(Publicacion).count()
+    total_publicaciones = db.query(Publicacion).filter(_no_eliminada()).count()
     publicaciones_activas = db.query(Publicacion).filter(Publicacion.estado == "activa").count()
     publicaciones_bloqueadas = (
         db.query(Publicacion)
-        .filter(Publicacion.estado.in_(["bloqueada", "pausada", "eliminada"]))
+        .filter(Publicacion.estado.in_(["bloqueada", "pausada"]))
         .count()
     )
     total_usuarios = db.query(Usuario).count()
@@ -82,10 +88,16 @@ def listar_publicaciones_moderador(
     _: Annotated[Usuario, Depends(verificar_moderador)],
     filtro_estado: Optional[str] = None,
 ):
-    """Listar todas las publicaciones para revisión de moderación."""
+    """Listar publicaciones para revisión de moderación.
+
+    Las publicaciones con estado ``eliminada`` (borrado lógico) solo se
+    devuelven si se solicitan explícitamente con ``filtro_estado=eliminada``.
+    """
     query = db.query(Publicacion)
     if filtro_estado:
         query = query.filter(Publicacion.estado == filtro_estado)
+    else:
+        query = query.filter(_no_eliminada())
 
     items = query.order_by(Publicacion.id.desc()).all()
     resultado = []

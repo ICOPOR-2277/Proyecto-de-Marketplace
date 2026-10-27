@@ -81,14 +81,24 @@ class _RegisterDialogState extends State<RegisterDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final media = MediaQuery.of(context);
+    final isMobile = media.size.width < 600;
+
     return Dialog(
+      insetPadding: EdgeInsets.symmetric(
+        horizontal: isMobile ? 14 : 24,
+        vertical: 24,
+      ),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Container(
-        width: 380,
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 400),
+        child: SingleChildScrollView(
+          child: Container(
+            width: isMobile ? double.infinity : 380,
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Row(
               children: [
@@ -187,6 +197,8 @@ class _RegisterDialogState extends State<RegisterDialog> {
           ],
         ),
       ),
-    );
+    ),
+  ),
+);
   }
 }

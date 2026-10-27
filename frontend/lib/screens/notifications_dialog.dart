@@ -7,20 +7,31 @@ class NotificationsDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final media = MediaQuery.of(context);
+    final isMobile = media.size.width < 600;
+
     return AnimatedBuilder(
       animation: notificationState,
       builder: (context, _) {
         final notifications = notificationState.notifications;
 
         return Dialog(
+          insetPadding: EdgeInsets.symmetric(
+            horizontal: isMobile ? 14 : 24,
+            vertical: 24,
+          ),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          child: Container(
-            width: 440,
-            constraints: const BoxConstraints(maxHeight: 520),
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              maxWidth: 440,
+              maxHeight: media.size.height * 0.85,
+            ),
+            child: Container(
+              width: isMobile ? double.infinity : 440,
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
                 Row(
                   children: [
                     const Icon(Icons.notifications_active, color: kNavy),
@@ -92,8 +103,9 @@ class NotificationsDialog extends StatelessWidget {
               ],
             ),
           ),
-        );
-      },
-    );
+        ),
+      );
+    },
+  );
   }
 }

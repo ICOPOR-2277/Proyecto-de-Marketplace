@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'constants/colors.dart';
@@ -67,6 +68,8 @@ class UtbMarketHomePage extends StatefulWidget {
 class _UtbMarketHomePageState extends State<UtbMarketHomePage>
     with SingleTickerProviderStateMixin {
   late final TabController _tabController;
+  Timer? _silentSyncTimer;
+  StreamSubscription<IncomingChatEvent>? _chatSubscription;
 
   final Map<String, List<Listing>> _listingsByCategory = {
     for (final c in kCategories.skip(1)) c.label: <Listing>[],
@@ -77,32 +80,131 @@ class _UtbMarketHomePageState extends State<UtbMarketHomePage>
     super.initState();
     _tabController = TabController(length: kCategories.length, vsync: this);
     _loadListingsFromBackend();
+
+    catalogState.addListener(_onCatalogStateChanged);
+
+    // Sincronización silenciosa periódica del catálogo cada 6s
+    _silentSyncTimer = Timer.periodic(const Duration(seconds: 6), (_) {
+      if (mounted) _syncListingsSilently();
+    });
+
+    // Escucha de mensajes entrantes de chat para mostrar alerta SnackBar interactiva
+    _chatSubscription = chatSyncService.incomingMessages.listen((event) {
+      if (!mounted) return;
+      final conv = event.conversation;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: kNavyDark,
+          margin: const EdgeInsets.all(12),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          content: Row(
+            children: [
+              const Icon(Icons.mark_chat_unread, color: kYellow, size: 20),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Nuevo mensaje de ${conv.otroUsuarioNombre}',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                        fontSize: 13,
+                      ),
+                    ),
+                    Text(
+                      conv.ultimoMensaje,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(color: Colors.white70, fontSize: 12),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          action: SnackBarAction(
+            label: 'Abrir Chat',
+            textColor: kYellow,
+            onPressed: () {
+              showDialog(
+                context: context,
+                builder: (_) => ChatDialog(
+                  currentUser: authSession.user,
+                  initialOtherUserId: conv.otroUsuarioId,
+                  initialOtherUserName: conv.otroUsuarioNombre,
+                  initialPublicationId: conv.publicacionId,
+                  initialPublicationTitle: conv.publicacionTitulo,
+                  initialPublicationPrice: conv.precioFormateado,
+                  initialPublicationImage: conv.imagenUrl,
+                  initialIsPublicationBlocked: conv.isPublicacionBloqueada,
+                ),
+              );
+            },
+          ),
+        ),
+      );
+    });
+  }
+
+  void _onCatalogStateChanged() {
+    final removed = catalogState.takeRemovedIds();
+    if (removed.isNotEmpty) {
+      setState(() {
+        for (final list in _listingsByCategory.values) {
+          list.removeWhere((l) => removed.contains(l.id));
+        }
+      });
+      for (final id in removed) {
+        cartState.removeItem(id);
+      }
+    }
+    _syncListingsSilently();
   }
 
   Future<void> _loadListingsFromBackend() async {
     try {
       final items = await ApiService.fetchListings();
       if (!mounted) return;
-      setState(() {
-        for (final item in items) {
-          if (_listingsByCategory.containsKey(item.categoryLabel)) {
-            final list = _listingsByCategory[item.categoryLabel]!;
-            final idx = list.indexWhere((l) => l.id == item.id);
-            if (idx != -1) {
-              list[idx] = item;
-            } else {
-              list.add(item);
-            }
-          }
-        }
-      });
+      _applyFreshListings(items);
     } catch (_) {
       // Backend desconectado o error silencioso
     }
   }
 
+  Future<void> _syncListingsSilently() async {
+    try {
+      final items = await ApiService.fetchListings();
+      if (!mounted) return;
+      _applyFreshListings(items);
+    } catch (_) {}
+  }
+
+  void _applyFreshListings(List<Listing> items) {
+    final Map<String, List<Listing>> next = {
+      for (final c in kCategories.skip(1)) c.label: <Listing>[],
+    };
+    for (final item in items) {
+      if (next.containsKey(item.categoryLabel)) {
+        next[item.categoryLabel]!.add(item);
+      }
+    }
+    setState(() {
+      for (final entry in next.entries) {
+        _listingsByCategory[entry.key] = entry.value;
+      }
+    });
+    cartState.syncWithCatalog(items);
+  }
+
   @override
   void dispose() {
+    _silentSyncTimer?.cancel();
+    _chatSubscription?.cancel();
+    catalogState.removeListener(_onCatalogStateChanged);
     _tabController.dispose();
     super.dispose();
   }
@@ -194,6 +296,8 @@ class _TopBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isMobile = MediaQuery.of(context).size.width < 650;
+
     return AnimatedBuilder(
       animation: authSession,
       builder: (context, _) {
@@ -201,97 +305,207 @@ class _TopBar extends StatelessWidget {
 
         return Container(
           color: kNavyDark,
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
           child: Row(
             children: [
               const Icon(Icons.location_on_outlined, color: Colors.white70, size: 16),
               const SizedBox(width: 4),
-              const Text('Enviar a Cartagena, Campus Ternera',
-                  style: TextStyle(color: Colors.white70, fontSize: 12)),
+              Text(
+                isMobile ? 'Campus Ternera' : 'Enviar a Cartagena, Campus Ternera',
+                style: const TextStyle(color: Colors.white70, fontSize: 12),
+              ),
               const Spacer(),
               if (user != null) ...[
-                Text('¡Hola, ${user.nombre.split(" ").first}!',
-                    style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
-                const SizedBox(width: 10),
-                ElevatedButton.icon(
-                  onPressed: () {
-                    showDialog(
-                      context: context,
-                      builder: (_) => MyListingsDialog(token: user.token),
-                    );
-                  },
-                  icon: const Icon(Icons.inventory_2_outlined, size: 14),
-                  label: const Text(
-                    'Mis Publicaciones',
-                    style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
-                  ),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.white24,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                    minimumSize: Size.zero,
-                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                  ),
-                ),
-                const SizedBox(width: 10),
-                if (user.esAdministrador) ...[
-                  ElevatedButton.icon(
-                    onPressed: () {
-                      if (user.modoModeradorActivo) {
-                        Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (_) => ModeratorDashboardPage(token: user.token),
-                          ),
+                if (isMobile) ...[
+                  PopupMenuButton<String>(
+                    icon: const Icon(Icons.account_circle, color: Colors.white, size: 22),
+                    tooltip: user.nombre,
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                    onSelected: (val) async {
+                      if (val == 'listings') {
+                        showDialog(
+                          context: context,
+                          builder: (_) => MyListingsDialog(token: user.token),
                         );
-                      } else {
-                        _openRoleSelectionModal(context, user);
+                      } else if (val == 'mod') {
+                        if (user.modoModeradorActivo) {
+                          await Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) => ModeratorDashboardPage(token: user.token),
+                            ),
+                          );
+                          catalogState.requestRefresh();
+                        } else {
+                          _openRoleSelectionModal(context, user);
+                        }
+                      } else if (val == 'logout') {
+                        authSession.logout();
                       }
                     },
-                    icon: const Icon(Icons.dashboard_outlined, size: 14),
-                    label: Text(
-                      user.modoModeradorActivo ? 'Dashboard Moderador' : 'Cambiar Rol',
-                      style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
+                    itemBuilder: (ctx) => [
+                      PopupMenuItem(
+                        enabled: false,
+                        child: Text(
+                          '¡Hola, ${user.nombre.split(" ").first}!',
+                          style: const TextStyle(fontWeight: FontWeight.bold, color: kNavy),
+                        ),
+                      ),
+                      const PopupMenuItem(
+                        value: 'listings',
+                        child: Row(
+                          children: [
+                            Icon(Icons.inventory_2_outlined, size: 18, color: kNavy),
+                            SizedBox(width: 8),
+                            Text('Mis Publicaciones'),
+                          ],
+                        ),
+                      ),
+                      if (user.esAdministrador)
+                        PopupMenuItem(
+                          value: 'mod',
+                          child: Row(
+                            children: [
+                              const Icon(Icons.admin_panel_settings, size: 18, color: kNavy),
+                              const SizedBox(width: 8),
+                              Text(user.modoModeradorActivo ? 'Dashboard Moderador' : 'Cambiar Rol'),
+                            ],
+                          ),
+                        ),
+                      const PopupMenuItem(
+                        value: 'logout',
+                        child: Row(
+                          children: [
+                            Icon(Icons.logout, size: 18, color: Colors.red),
+                            SizedBox(width: 8),
+                            Text('Cerrar Sesión', style: TextStyle(color: Colors.red)),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ] else ...[
+                  Text(
+                    '¡Hola, ${user.nombre.split(" ").first}!',
+                    style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(width: 10),
+                  ElevatedButton.icon(
+                    onPressed: () {
+                      showDialog(
+                        context: context,
+                        builder: (_) => MyListingsDialog(token: user.token),
+                      );
+                    },
+                    icon: const Icon(Icons.inventory_2_outlined, size: 14),
+                    label: const Text(
+                      'Mis Publicaciones',
+                      style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
                     ),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: kYellow,
-                      foregroundColor: kNavyDark,
+                      backgroundColor: Colors.white24,
+                      foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                       minimumSize: Size.zero,
                       tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                     ),
                   ),
                   const SizedBox(width: 10),
+                  if (user.esAdministrador) ...[
+                    ElevatedButton.icon(
+                      onPressed: () async {
+                        if (user.modoModeradorActivo) {
+                          await Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) => ModeratorDashboardPage(token: user.token),
+                            ),
+                          );
+                          catalogState.requestRefresh();
+                        } else {
+                          _openRoleSelectionModal(context, user);
+                        }
+                      },
+                      icon: const Icon(Icons.dashboard_outlined, size: 14),
+                      label: Text(
+                        user.modoModeradorActivo ? 'Dashboard Moderador' : 'Cambiar Rol',
+                        style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: kYellow,
+                        foregroundColor: kNavyDark,
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        minimumSize: Size.zero,
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                  ],
+                  IconButton(
+                    icon: const Icon(Icons.logout, color: Colors.white70, size: 18),
+                    tooltip: 'Cerrar Sesión',
+                    onPressed: () => authSession.logout(),
+                  ),
                 ],
-                IconButton(
-                  icon: const Icon(Icons.logout, color: Colors.white70, size: 18),
-                  tooltip: 'Cerrar Sesión',
-                  onPressed: () => authSession.logout(),
-                ),
               ] else ...[
                 TextButton.icon(
                   onPressed: () => _openAuthDialog(context),
                   icon: const Icon(Icons.person_outline, color: Colors.white, size: 16),
-                  label: const Text('Iniciar Sesión',
-                      style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600)),
+                  label: const Text(
+                    'Iniciar Sesión',
+                    style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600),
+                  ),
                   style: TextButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 8)),
                 ),
               ],
               const SizedBox(width: 8),
 
-              // Botón Chat Interactivo con Vendedores
-              IconButton(
-                icon: const Icon(Icons.chat_bubble_outline, color: Colors.white, size: 20),
-                tooltip: 'Chat con Vendedores',
-                padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(),
-                onPressed: () {
-                  if (!authSession.isAuthenticated) {
-                    _openAuthDialog(context);
-                    return;
-                  }
-                  showDialog(
-                    context: context,
-                    builder: (_) => ChatDialog(currentUser: authSession.user),
+              // Botón Chat Interactivo con Vendedores con insignia reactiva
+              AnimatedBuilder(
+                animation: chatSyncService,
+                builder: (context, _) {
+                  final unread = chatSyncService.unreadChatCount;
+                  return Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.chat_bubble_outline, color: Colors.white, size: 20),
+                        tooltip: 'Chat con Vendedores',
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(),
+                        onPressed: () {
+                          if (!authSession.isAuthenticated) {
+                            _openAuthDialog(context);
+                            return;
+                          }
+                          showDialog(
+                            context: context,
+                            builder: (_) => ChatDialog(currentUser: authSession.user),
+                          );
+                        },
+                      ),
+                      if (unread > 0)
+                        Positioned(
+                          right: -4,
+                          top: -4,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: kYellow,
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
+                            child: Text(
+                              '$unread',
+                              style: const TextStyle(
+                                color: kNavyDark,
+                                fontSize: 9,
+                                fontWeight: FontWeight.bold,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                          ),
+                        ),
+                    ],
                   );
                 },
               ),
@@ -402,110 +616,121 @@ class _RoleSelectionDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isMobile = MediaQuery.of(context).size.width < 600;
+
     return Dialog(
+      insetPadding: EdgeInsets.symmetric(
+        horizontal: isMobile ? 14 : 24,
+        vertical: 24,
+      ),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: Container(
-        width: 420,
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            const Icon(Icons.security, size: 48, color: kUtbBluePrimary),
-            const SizedBox(height: 12),
-            const Text(
-              'Elige tu modo de acceso',
-              textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: kTextDark),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Hola ${user.nombre}, tu cuenta cuenta con privilegios de Moderador institucional. ¿Cómo deseas ingresar hoy?',
-              textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 13, color: kTextGrey),
-            ),
-            const SizedBox(height: 24),
-            // Opción Modo Usuario
-            InkWell(
-              onTap: () {
-                authSession.toggleModeratorMode(false);
-                Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Ingresaste en modo Usuario / Estudiante')),
-                );
-              },
-              borderRadius: BorderRadius.circular(10),
-              child: Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  border: Border.all(color: kCardBorder),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 420),
+        child: SingleChildScrollView(
+          child: Container(
+            width: isMobile ? double.infinity : 420,
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const Icon(Icons.security, size: 48, color: kUtbBluePrimary),
+                const SizedBox(height: 12),
+                const Text(
+                  'Elige tu modo de acceso',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: kTextDark),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Hola ${user.nombre}, tu cuenta cuenta con privilegios de Moderador institucional. ¿Cómo deseas ingresar hoy?',
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(fontSize: 13, color: kTextGrey),
+                ),
+                const SizedBox(height: 24),
+                // Opción Modo Usuario
+                InkWell(
+                  onTap: () {
+                    authSession.toggleModeratorMode(false);
+                    Navigator.pop(context);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Ingresaste en modo Usuario / Estudiante')),
+                    );
+                  },
                   borderRadius: BorderRadius.circular(10),
-                ),
-                child: const Row(
-                  children: [
-                    CircleAvatar(
-                      backgroundColor: kBg,
-                      child: Icon(Icons.school, color: kNavy),
+                  child: Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      border: Border.all(color: kCardBorder),
+                      borderRadius: BorderRadius.circular(10),
                     ),
-                    SizedBox(width: 14),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('Entrar como Usuario / Estudiante',
-                              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: kTextDark)),
-                          Text('Explora servicios, compra y publica tus artículos normalmente.',
-                              style: TextStyle(fontSize: 11, color: kTextGrey)),
-                        ],
-                      ),
+                    child: const Row(
+                      children: [
+                        CircleAvatar(
+                          backgroundColor: kBg,
+                          child: Icon(Icons.school, color: kNavy),
+                        ),
+                        SizedBox(width: 14),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text('Entrar como Usuario / Estudiante',
+                                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: kTextDark)),
+                              Text('Explora servicios, compra y publica tus artículos normalmente.',
+                                  style: TextStyle(fontSize: 11, color: kTextGrey)),
+                            ],
+                          ),
+                        ),
+                        Icon(Icons.arrow_forward_ios, size: 14, color: kTextGrey),
+                      ],
                     ),
-                    Icon(Icons.arrow_forward_ios, size: 14, color: kTextGrey),
-                  ],
+                  ),
                 ),
-              ),
-            ),
-            const SizedBox(height: 12),
-            // Opción Modo Moderador
-            InkWell(
-              onTap: () {
-                authSession.toggleModeratorMode(true);
-                Navigator.pop(context);
-                Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => ModeratorDashboardPage(token: user.token)),
-                );
-              },
-              borderRadius: BorderRadius.circular(10),
-              child: Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  border: Border.all(color: kYellow, width: 2),
+                const SizedBox(height: 12),
+                // Opción Modo Moderador
+                InkWell(
+                  onTap: () {
+                    authSession.toggleModeratorMode(true);
+                    Navigator.pop(context);
+                    Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => ModeratorDashboardPage(token: user.token)),
+                    );
+                  },
                   borderRadius: BorderRadius.circular(10),
-                  color: const Color(0xFFFFFBEB),
-                ),
-                child: const Row(
-                  children: [
-                    CircleAvatar(
-                      backgroundColor: kYellow,
-                      child: Icon(Icons.admin_panel_settings, color: kNavyDark),
+                  child: Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      border: Border.all(color: kYellow, width: 2),
+                      borderRadius: BorderRadius.circular(10),
+                      color: const Color(0xFFFFFBEB),
                     ),
-                    SizedBox(width: 14),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('Entrar como Moderador',
-                              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: kNavyDark)),
-                          Text('Acceso completo al Dashboard, monitoreo de publicaciones y control de usuarios.',
-                              style: TextStyle(fontSize: 11, color: kTextGrey)),
-                        ],
-                      ),
+                    child: const Row(
+                      children: [
+                        CircleAvatar(
+                          backgroundColor: kYellow,
+                          child: Icon(Icons.admin_panel_settings, color: kNavyDark),
+                        ),
+                        SizedBox(width: 14),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text('Entrar como Moderador',
+                                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: kNavyDark)),
+                              Text('Acceso completo al Dashboard, monitoreo de publicaciones y control de usuarios.',
+                                  style: TextStyle(fontSize: 11, color: kTextGrey)),
+                            ],
+                          ),
+                        ),
+                        Icon(Icons.arrow_forward_ios, size: 14, color: kNavyDark),
+                      ],
                     ),
-                    Icon(Icons.arrow_forward_ios, size: 14, color: kNavyDark),
-                  ],
+                  ),
                 ),
-              ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );
@@ -539,81 +764,102 @@ class _MainHeaderState extends State<_MainHeader> {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      color: kNavy,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+    final isMobile = MediaQuery.of(context).size.width < 650;
+
+    final logoAndTitle = Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Image.asset(
+            'assets/images/utb_logo.png',
+            height: 32,
+            fit: BoxFit.contain,
+            errorBuilder: (_, __, ___) => Row(
+              children: [
+                Container(
+                  width: 30,
+                  height: 30,
+                  decoration: BoxDecoration(color: kYellow, borderRadius: BorderRadius.circular(6)),
+                  alignment: Alignment.center,
+                  child: const Text('UTB',
+                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 10, color: kNavy)),
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(width: 10),
+        const Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('UTB Market',
+                style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 17)),
+            Text('Mercado Estudiantil', style: TextStyle(color: Colors.white70, fontSize: 10)),
+          ],
+        ),
+      ],
+    );
+
+    final searchBox = Container(
+      height: 40,
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(8)),
+      padding: const EdgeInsets.symmetric(horizontal: 12),
       child: Row(
         children: [
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Image.asset(
-              'assets/images/utb_logo.png',
-              height: 34,
-              fit: BoxFit.contain,
-              errorBuilder: (_, __, ___) => Row(
-                children: [
-                  Container(
-                    width: 32,
-                    height: 32,
-                    decoration: BoxDecoration(color: kYellow, borderRadius: BorderRadius.circular(6)),
-                    alignment: Alignment.center,
-                    child: const Text('UTB',
-                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 10, color: kNavy)),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(width: 12),
-          const Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('UTB Market',
-                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),
-              Text('Mercado Estudiantil', style: TextStyle(color: Colors.white70, fontSize: 10)),
-            ],
-          ),
-          const SizedBox(width: 20),
           Expanded(
-            child: Container(
-              height: 40,
-              decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(8)),
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: TextField(
-                      controller: _searchController,
-                      onSubmitted: (_) => _submit(),
-                      decoration: const InputDecoration(
-                        hintText: 'Buscar libros, apuntes, cálculo, transporte...',
-                        hintStyle: TextStyle(fontSize: 13, color: kTextGrey),
-                        border: InputBorder.none,
-                        isDense: true,
-                      ),
-                    ),
-                  ),
-                  GestureDetector(
-                    onTap: _submit,
-                    child: Container(
-                      padding: const EdgeInsets.all(4),
-                      decoration: BoxDecoration(
-                        color: kYellow,
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: const Icon(Icons.search, color: kNavyDark, size: 20),
-                    ),
-                  ),
-                ],
+            child: TextField(
+              controller: _searchController,
+              onSubmitted: (_) => _submit(),
+              decoration: const InputDecoration(
+                hintText: 'Buscar libros, apuntes, cálculo, transporte...',
+                hintStyle: TextStyle(fontSize: 13, color: kTextGrey),
+                border: InputBorder.none,
+                isDense: true,
               ),
+            ),
+          ),
+          GestureDetector(
+            onTap: _submit,
+            child: Container(
+              padding: const EdgeInsets.all(4),
+              decoration: BoxDecoration(
+                color: kYellow,
+                borderRadius: BorderRadius.circular(4),
+              ),
+              child: const Icon(Icons.search, color: kNavyDark, size: 20),
             ),
           ),
         ],
       ),
+    );
+
+    return Container(
+      color: kNavy,
+      padding: EdgeInsets.symmetric(
+        horizontal: isMobile ? 12 : 16,
+        vertical: isMobile ? 10 : 12,
+      ),
+      child: isMobile
+          ? Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                logoAndTitle,
+                const SizedBox(height: 10),
+                searchBox,
+              ],
+            )
+          : Row(
+              children: [
+                logoAndTitle,
+                const SizedBox(width: 20),
+                Expanded(child: searchBox),
+              ],
+            ),
     );
   }
 }
@@ -755,11 +1001,14 @@ class _CategoryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isMobile = MediaQuery.of(context).size.width < 650;
+    final cardWidth = isMobile ? (MediaQuery.of(context).size.width - 44) / 2 : 165.0;
+
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(10),
       child: Container(
-        width: 165,
+        width: cardWidth,
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
           color: Colors.white,
@@ -857,6 +1106,8 @@ class _CategoryTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isMobile = MediaQuery.of(context).size.width < 650;
+
     return Scaffold(
       backgroundColor: kBg,
       floatingActionButton: FloatingActionButton.extended(
@@ -884,18 +1135,23 @@ class _CategoryTab extends StatelessWidget {
                 ),
               ),
             )
-          : GridView.builder(
-              padding: const EdgeInsets.all(16),
-              gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-                maxCrossAxisExtent: 220,
-                mainAxisExtent: 260,
-                crossAxisSpacing: 12,
-                mainAxisSpacing: 12,
-              ),
-              itemCount: listings.length,
-              itemBuilder: (context, index) {
-                return _ListingCard(listing: listings[index]);
+          : RefreshIndicator(
+              onRefresh: () async {
+                catalogState.requestRefresh();
               },
+              child: GridView.builder(
+                padding: EdgeInsets.all(isMobile ? 10 : 16),
+                gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
+                  maxCrossAxisExtent: isMobile ? 200 : 220,
+                  mainAxisExtent: isMobile ? 250 : 260,
+                  crossAxisSpacing: isMobile ? 8 : 12,
+                  mainAxisSpacing: isMobile ? 8 : 12,
+                ),
+                itemCount: listings.length,
+                itemBuilder: (context, index) {
+                  return _ListingCard(listing: listings[index]);
+                },
+              ),
             ),
     );
   }
@@ -997,14 +1253,19 @@ class _ListingCard extends StatelessWidget {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(
-                      listing.price,
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.bold,
-                        color: isUnavailable ? Colors.grey : kNavy,
+                    Expanded(
+                      child: Text(
+                        listing.price,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.bold,
+                          color: isUnavailable ? Colors.grey : kNavy,
+                        ),
                       ),
                     ),
+                    const SizedBox(width: 4),
                     Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
@@ -1306,6 +1567,7 @@ class _AddListingSheetState extends State<_AddListingSheet> {
       );
 
       widget.onCreated(created);
+      catalogState.requestRefresh();
       if (mounted) Navigator.pop(context);
     } catch (e) {
       if (mounted) {
@@ -1446,6 +1708,8 @@ class _SearchResultsPageState extends State<_SearchResultsPage> {
 
   @override
   Widget build(BuildContext context) {
+    final isMobile = MediaQuery.of(context).size.width < 650;
+
     return Scaffold(
       appBar: AppBar(
         backgroundColor: kNavy,
@@ -1475,155 +1739,201 @@ class _SearchResultsPageState extends State<_SearchResultsPage> {
                   ),
                 )
               : ListView.builder(
-                  padding: const EdgeInsets.all(16),
+                  padding: EdgeInsets.all(isMobile ? 10 : 16),
                   itemCount: _results.length,
                   itemBuilder: (context, index) {
                     final listing = _results[index];
                     final isBlocked = listing.isBloqueada;
 
+                    final imageBox = Container(
+                      width: 54,
+                      height: 54,
+                      decoration: BoxDecoration(
+                        color: kBg,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: listing.imageUrl != null
+                          ? ClipRRect(
+                              borderRadius: BorderRadius.circular(8),
+                              child: Image.network(
+                                listing.imageUrl!,
+                                fit: BoxFit.cover,
+                                errorBuilder: (_, __, ___) =>
+                                    const Icon(Icons.image_outlined, color: kTextGrey),
+                              ),
+                            )
+                          : const Icon(Icons.image_outlined, color: kTextGrey),
+                    );
+
+                    final detailsColumn = Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          listing.title,
+                          style: TextStyle(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 14,
+                            color: isBlocked ? Colors.red.shade800 : kTextDark,
+                            decoration: isBlocked ? TextDecoration.lineThrough : null,
+                          ),
+                        ),
+                        const SizedBox(height: 3),
+                        Wrap(
+                          crossAxisAlignment: WrapCrossAlignment.center,
+                          spacing: 6,
+                          children: [
+                            Text(
+                              '${listing.categoryLabel} • Vendedor: ${listing.vendedorNombre ?? "Compañero UTB"}',
+                              style: const TextStyle(fontSize: 11, color: kTextGrey),
+                            ),
+                            if (isBlocked)
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                                decoration: BoxDecoration(
+                                  color: Colors.red.shade100,
+                                  borderRadius: BorderRadius.circular(4),
+                                ),
+                                child: const Text(
+                                  '🚫 Bloqueado',
+                                  style: TextStyle(color: Colors.red, fontSize: 9, fontWeight: FontWeight.bold),
+                                ),
+                              ),
+                          ],
+                        ),
+                      ],
+                    );
+
+                    final chatBtn = IconButton(
+                      icon: const Icon(Icons.chat_bubble_outline, size: 18, color: kNavy),
+                      tooltip: 'Chatear con vendedor',
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                      onPressed: () {
+                        if (!authSession.isAuthenticated) {
+                          showDialog(
+                            context: context,
+                            builder: (ctx) => AlertDialog(
+                              title: const Text('Inicia sesión'),
+                              content: const Text('Debes iniciar sesión para chatear con el vendedor.'),
+                              actions: [
+                                TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Entendido')),
+                              ],
+                            ),
+                          );
+                          return;
+                        }
+                        showDialog(
+                          context: context,
+                          builder: (_) => ChatDialog(
+                            currentUser: authSession.user,
+                            initialOtherUserId: listing.usuarioId,
+                            initialOtherUserName: listing.vendedorNombre ?? 'Vendedor UTB',
+                            initialPublicationId: int.tryParse(listing.id),
+                            initialPublicationTitle: listing.title,
+                            initialPublicationPrice: listing.price,
+                            initialPublicationImage: listing.imageUrl,
+                            initialIsPublicationBlocked: isBlocked,
+                          ),
+                        );
+                      },
+                    );
+
+                    final cartBtn = IconButton(
+                      icon: Icon(
+                        isBlocked ? Icons.block : Icons.add_shopping_cart,
+                        size: 18,
+                        color: isBlocked ? Colors.red : kNavy,
+                      ),
+                      tooltip: isBlocked ? 'Bloqueado por moderación' : 'Agregar al carrito',
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                      onPressed: () {
+                        if (isBlocked) {
+                          showDialog(
+                            context: context,
+                            builder: (ctx) => AlertDialog(
+                              title: const Text('Publicación Bloqueada'),
+                              content: Text('"${listing.title}" fue bloqueada por un moderador y no se puede comprar.'),
+                              actions: [
+                                TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Entendido')),
+                              ],
+                            ),
+                          );
+                          return;
+                        }
+                        cartState.addItem(listing);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('"${listing.title}" agregado al carrito'),
+                            duration: const Duration(seconds: 2),
+                          ),
+                        );
+                      },
+                    );
+
                     return Container(
-                      margin: const EdgeInsets.only(bottom: 12),
+                      margin: const EdgeInsets.only(bottom: 10),
                       decoration: BoxDecoration(
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(8),
                         border: Border.all(color: isBlocked ? Colors.red.shade300 : kCardBorder),
                       ),
-                      padding: const EdgeInsets.all(14),
-                      child: Row(
-                        children: [
-                          Container(
-                            width: 54,
-                            height: 54,
-                            decoration: BoxDecoration(
-                              color: kBg,
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: listing.imageUrl != null
-                                ? ClipRRect(
-                                    borderRadius: BorderRadius.circular(8),
-                                    child: Image.network(
-                                      listing.imageUrl!,
-                                      fit: BoxFit.cover,
-                                      errorBuilder: (_, __, ___) =>
-                                          const Icon(Icons.image_outlined, color: kTextGrey),
-                                    ),
-                                  )
-                                : const Icon(Icons.image_outlined, color: kTextGrey),
-                          ),
-                          const SizedBox(width: 14),
-                          Expanded(
-                            child: Column(
+                      padding: const EdgeInsets.all(12),
+                      child: isMobile
+                          ? Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text(
-                                  listing.title,
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.w600,
-                                    fontSize: 14,
-                                    color: isBlocked ? Colors.red.shade800 : kTextDark,
-                                    decoration: isBlocked ? TextDecoration.lineThrough : null,
-                                  ),
-                                ),
-                                const SizedBox(height: 3),
                                 Row(
                                   children: [
+                                    imageBox,
+                                    const SizedBox(width: 10),
+                                    Expanded(child: detailsColumn),
+                                  ],
+                                ),
+                                const SizedBox(height: 8),
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
                                     Text(
-                                      '${listing.categoryLabel} • Vendedor: ${listing.vendedorNombre ?? "Compañero UTB"}',
-                                      style: const TextStyle(fontSize: 12, color: kTextGrey),
-                                    ),
-                                    if (isBlocked) ...[
-                                      const SizedBox(width: 8),
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                        decoration: BoxDecoration(
-                                          color: Colors.red.shade100,
-                                          borderRadius: BorderRadius.circular(4),
-                                        ),
-                                        child: const Text(
-                                          '🚫 Bloqueado',
-                                          style: TextStyle(color: Colors.red, fontSize: 10, fontWeight: FontWeight.bold),
-                                        ),
+                                      listing.price,
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 14,
+                                        color: isBlocked ? Colors.grey : kNavy,
                                       ),
-                                    ],
+                                    ),
+                                    Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        chatBtn,
+                                        const SizedBox(width: 12),
+                                        cartBtn,
+                                      ],
+                                    ),
                                   ],
                                 ),
                               ],
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Text(
-                            listing.price,
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 14,
-                              color: isBlocked ? Colors.grey : kNavy,
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          IconButton(
-                            icon: const Icon(Icons.chat_bubble_outline, size: 18, color: kNavy),
-                            tooltip: 'Chatear con vendedor',
-                            onPressed: () {
-                              if (!authSession.isAuthenticated) {
-                                showDialog(
-                                  context: context,
-                                  builder: (ctx) => AlertDialog(
-                                    title: const Text('Inicia sesión'),
-                                    content: const Text('Debes iniciar sesión para chatear con el vendedor.'),
-                                    actions: [
-                                      TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Entendido')),
-                                    ],
+                            )
+                          : Row(
+                              children: [
+                                imageBox,
+                                const SizedBox(width: 14),
+                                Expanded(child: detailsColumn),
+                                const SizedBox(width: 8),
+                                Text(
+                                  listing.price,
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 14,
+                                    color: isBlocked ? Colors.grey : kNavy,
                                   ),
-                                );
-                                return;
-                              }
-                              showDialog(
-                                context: context,
-                                builder: (_) => ChatDialog(
-                                  currentUser: authSession.user,
-                                  initialOtherUserId: listing.usuarioId,
-                                  initialOtherUserName: listing.vendedorNombre ?? 'Vendedor UTB',
-                                  initialPublicationId: int.tryParse(listing.id),
-                                  initialPublicationTitle: listing.title,
-                                  initialPublicationPrice: listing.price,
-                                  initialPublicationImage: listing.imageUrl,
-                                  initialIsPublicationBlocked: isBlocked,
                                 ),
-                              );
-                            },
-                          ),
-                          IconButton(
-                            icon: Icon(
-                              isBlocked ? Icons.block : Icons.add_shopping_cart,
-                              size: 18,
-                              color: isBlocked ? Colors.red : kNavy,
+                                const SizedBox(width: 12),
+                                chatBtn,
+                                const SizedBox(width: 8),
+                                cartBtn,
+                              ],
                             ),
-                            tooltip: isBlocked ? 'Bloqueado por moderación' : 'Agregar al carrito',
-                            onPressed: () {
-                              if (isBlocked) {
-                                showDialog(
-                                  context: context,
-                                  builder: (ctx) => AlertDialog(
-                                    title: const Text('Publicación Bloqueada'),
-                                    content: Text('"${listing.title}" fue bloqueada por un moderador y no se puede comprar.'),
-                                    actions: [
-                                      TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Entendido')),
-                                    ],
-                                  ),
-                                );
-                                return;
-                              }
-                              cartState.addItem(listing);
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text('"${listing.title}" agregado al carrito'),
-                                  duration: const Duration(seconds: 2),
-                                ),
-                              );
-                            },
-                          ),
-                        ],
-                      ),
                     );
                   },
                 ),

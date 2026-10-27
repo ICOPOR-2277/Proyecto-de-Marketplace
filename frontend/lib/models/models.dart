@@ -85,6 +85,30 @@ class Listing {
   bool get isActiva => estado.toLowerCase() == 'activa';
   bool get isVendida => estado.toLowerCase() == 'vendida';
   bool get isPausada => estado.toLowerCase() == 'pausada';
+
+  Listing copyWith({
+    String? id,
+    String? categoryLabel,
+    String? title,
+    String? price,
+    String? imageUrl,
+    Uint8List? imageBytes,
+    String? estado,
+    int? usuarioId,
+    String? vendedorNombre,
+  }) {
+    return Listing(
+      id: id ?? this.id,
+      categoryLabel: categoryLabel ?? this.categoryLabel,
+      title: title ?? this.title,
+      price: price ?? this.price,
+      imageUrl: imageUrl ?? this.imageUrl,
+      imageBytes: imageBytes ?? this.imageBytes,
+      estado: estado ?? this.estado,
+      usuarioId: usuarioId ?? this.usuarioId,
+      vendedorNombre: vendedorNombre ?? this.vendedorNombre,
+    );
+  }
 }
 
 class CartItem {
@@ -174,6 +198,10 @@ class ChatConversation {
   final int mensajesNoLeidos;
   final int? publicacionId;
   final String? publicacionTitulo;
+  final double? precio;
+  final String? imagenUrl;
+  final String? estadoPublicacion;
+  final int? ultimoMensajeId;
 
   ChatConversation({
     required this.otroUsuarioId,
@@ -184,7 +212,28 @@ class ChatConversation {
     required this.mensajesNoLeidos,
     this.publicacionId,
     this.publicacionTitulo,
+    this.precio,
+    this.imagenUrl,
+    this.estadoPublicacion,
+    this.ultimoMensajeId,
   });
+
+  /// Identificador único del hilo: cada par (usuario, publicación) es un chat independiente.
+  String get threadKey => chatThreadKey(otroUsuarioId, publicacionId);
+
+  bool get isPublicacionBloqueada => (estadoPublicacion ?? '').toLowerCase() == 'bloqueada';
+
+  /// Precio formateado al estilo colombiano (ej: $45.000) o null si no aplica.
+  String? get precioFormateado {
+    final p = precio;
+    if (p == null) return null;
+    final digits = p.round().toString();
+    final formatted = digits.replaceAllMapped(
+      RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+      (m) => '${m[1]}.',
+    );
+    return '\$$formatted';
+  }
 
   factory ChatConversation.fromJson(Map<String, dynamic> json) {
     return ChatConversation(
@@ -196,6 +245,15 @@ class ChatConversation {
       mensajesNoLeidos: json['mensajes_no_leidos'] ?? 0,
       publicacionId: json['publicacion_id'] as int?,
       publicacionTitulo: json['publicacion_titulo'] as String?,
+      precio: (json['precio'] as num?)?.toDouble(),
+      imagenUrl: json['imagen_url'] as String?,
+      estadoPublicacion: json['estado'] as String?,
+      ultimoMensajeId: json['ultimo_mensaje_id'] as int?,
     );
   }
 }
+
+/// Clave compuesta de un hilo de chat (otro usuario + publicación).
+String chatThreadKey(int otroUsuarioId, int? publicacionId) =>
+    '$otroUsuarioId:${publicacionId ?? 'general'}';
+
