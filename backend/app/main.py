@@ -120,6 +120,17 @@ app.include_router(compras.router, prefix="/compras", tags=["Compras"])
 app.include_router(chat.router, prefix="/chat", tags=["Chat"])
 
 
+@app.middleware("http")
+async def no_cache_static_middleware(request: Request, call_next):
+    response = await call_next(request)
+    path = request.url.path
+    if path == "/" or path.endswith((".html", ".js")):
+        response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+        response.headers["Pragma"] = "no-cache"
+        response.headers["Expires"] = "0"
+    return response
+
+
 # Directorio de la interfaz web de Flutter compilada
 static_frontend_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "static")
 static_index_html = os.path.join(static_frontend_dir, "index.html")
@@ -129,7 +140,14 @@ static_index_html = os.path.join(static_frontend_dir, "index.html")
 def root(request: Request):
     accept = request.headers.get("accept", "")
     if "text/html" in accept and os.path.isfile(static_index_html):
-        return FileResponse(static_index_html)
+        return FileResponse(
+            static_index_html,
+            headers={
+                "Cache-Control": "no-cache, no-store, must-revalidate",
+                "Pragma": "no-cache",
+                "Expires": "0",
+            },
+        )
     return {"mensaje": "API del marketplace de servicios entre estudiantes"}
 
 

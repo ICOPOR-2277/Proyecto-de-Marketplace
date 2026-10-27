@@ -74,6 +74,8 @@ class _ChatDialogState extends State<ChatDialog> {
       _loadConversations();
       if (_activeUserId != null) {
         _loadMessages(_activeUserId!, publicationId: _currentPubId);
+      } else if (widget.initialPublicationId != null) {
+        _resolveSellerAndLoad();
       }
       // Sondeo periódico para recibir mensajes en tiempo real
       _pollingTimer = Timer.periodic(const Duration(seconds: 4), (_) {
@@ -85,6 +87,26 @@ class _ChatDialogState extends State<ChatDialog> {
         }
       });
     }
+  }
+
+  Future<void> _resolveSellerAndLoad() async {
+    final pubId = widget.initialPublicationId;
+    if (pubId == null) return;
+    try {
+      final info = await ApiService.fetchSellerForListing(pubId);
+      if (!mounted) return;
+      final sId = info['vendedor_id'] as int?;
+      final sNombre = info['vendedor_nombre'] as String?;
+      if (sId != null) {
+        setState(() {
+          _activeUserId = sId;
+          _activeUserName = sNombre ?? _activeUserName ?? 'Vendedor UTB';
+          _showMobileChat = true;
+          chatSyncService.activeThreadKey = chatThreadKey(sId, _currentPubId);
+        });
+        _loadMessages(sId, publicationId: _currentPubId);
+      }
+    } catch (_) {}
   }
 
   @override
@@ -106,8 +128,8 @@ class _ChatDialogState extends State<ChatDialog> {
         setState(() {
           _conversations = convs;
           _loadingConversations = false;
-          // Si no había usuario activo y hay conversaciones, seleccionar la primera en pantallas grandes
-          if (_activeUserId == null && convs.isNotEmpty) {
+          // Solo seleccionar la primera conversación si no hay usuario activo Y tampoco se pidió una publicación específica
+          if (_activeUserId == null && convs.isNotEmpty && widget.initialPublicationId == null) {
             final first = convs.first;
             _activeUserId = first.otroUsuarioId;
             _activeUserName = first.otroUsuarioNombre;
@@ -143,7 +165,10 @@ class _ChatDialogState extends State<ChatDialog> {
     final token = widget.currentUser?.token;
     if (token == null) return;
 
-    setState(() => _loadingMessages = true);
+    setState(() {
+      _loadingMessages = true;
+      _messages = [];
+    });
     try {
       final msgs = await ApiService.fetchMessages(
         token,

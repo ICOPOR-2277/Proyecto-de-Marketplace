@@ -1305,6 +1305,16 @@ class _ListingCard extends StatelessWidget {
                               return;
                             }
 
+                            if (authSession.user?.id != null && listing.usuarioId == authSession.user!.id) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('Esta es tu propia publicación. Puedes gestionarla desde "Mis Publicaciones".'),
+                                  duration: Duration(seconds: 2),
+                                ),
+                              );
+                              return;
+                            }
+
                             showDialog(
                               context: context,
                               builder: (_) => ChatDialog(
@@ -1822,6 +1832,17 @@ class _SearchResultsPageState extends State<_SearchResultsPage> {
                           );
                           return;
                         }
+
+                        if (authSession.user?.id != null && listing.usuarioId == authSession.user!.id) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Esta es tu propia publicación. Puedes gestionarla desde "Mis Publicaciones".'),
+                              duration: Duration(seconds: 2),
+                            ),
+                          );
+                          return;
+                        }
+
                         showDialog(
                           context: context,
                           builder: (_) => ChatDialog(
