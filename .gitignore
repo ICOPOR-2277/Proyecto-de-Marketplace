@@ -18,3 +18,5 @@ frontend/.packages
 *test_marketplace.db*
 *.db-journal
 backend/uploads/*test.png
+~$*
+

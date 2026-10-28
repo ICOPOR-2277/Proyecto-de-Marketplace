@@ -1,0 +1,262 @@
+%PDF-1.4
+%âãÏÓ
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [3 0 R] /Count 1 >>
+endobj
+3 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 4 0 R /F2 5 0 R >> >> /Contents 6 0 R >>
+endobj
+4 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>
+endobj
+5 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>
+endobj
+6 0 obj
+<< /Length 18013 >>
+stream
+BT /F1 8.30 Tf 0.220 0.250 0.310 rg 1 0 0 1 42.00 756.00 Tm (UNIVERSIDAD TECNOLÓGICA DE BOLÍVAR | INGENIERÍA DE SOFTWARE) Tj ET
+BT /F2 14.00 Tf 0.070 0.090 0.150 rg 1 0 0 1 42.00 739.00 Tm (Hoja de trabajo del equipo) Tj ET
+BT /F1 9.50 Tf 0.070 0.090 0.150 rg 1 0 0 1 42.00 721.00 Tm (Equipo:) Tj ET
+BT /F2 9.50 Tf 0.070 0.090 0.150 rg 1 0 0 1 82.00 721.00 Tm (Marketplace Universitario UTB) Tj ET
+q 0.70 w 0.070 0.090 0.150 RG 79.00 718.50 m 252.00 718.50 l S Q
+BT /F1 9.50 Tf 0.070 0.090 0.150 rg 1 0 0 1 272.00 721.00 Tm (Fecha:) Tj ET
+BT /F2 9.50 Tf 0.070 0.090 0.150 rg 1 0 0 1 308.00 721.00 Tm (28/10/2026) Tj ET
+q 0.70 w 0.070 0.090 0.150 RG 305.00 718.50 m 407.00 718.50 l S Q
+q 0.898 0.906 0.922 rg 42.00 690.43 330.00 20.57 re f Q
+q 0.60 w 0.820 0.840 0.860 RG 42.00 690.43 330.00 20.57 re S Q
+BT /F2 8.50 Tf 0.070 0.090 0.150 rg 1 0 0 1 47.00 698.58 Tm (Nombre completo) Tj ET
+q 0.898 0.906 0.922 rg 372.00 690.43 198.00 20.57 re f Q
+q 0.60 w 0.820 0.840 0.860 RG 372.00 690.43 198.00 20.57 re S Q
+BT /F2 8.50 Tf 0.070 0.090 0.150 rg 1 0 0 1 377.00 698.58 Tm (Rol) Tj ET
+q 0.60 w 0.820 0.840 0.860 RG 42.00 671.86 330.00 18.57 re S Q
+BT /F1 8.20 Tf 0.070 0.090 0.150 rg 1 0 0 1 47.00 679.26 Tm (Jesús Andrés Pérez Fuentes) Tj ET
+q 0.60 w 0.820 0.840 0.860 RG 372.00 671.86 198.00 18.57 re S Q
+BT /F1 8.20 Tf 0.070 0.090 0.150 rg 1 0 0 1 377.00 679.26 Tm (Scrum Master / Desarrollador Full-Stack) Tj ET
+q 0.60 w 0.820 0.840 0.860 RG 42.00 653.30 330.00 18.57 re S Q
+BT /F1 8.20 Tf 0.070 0.090 0.150 rg 1 0 0 1 47.00 660.69 Tm (Juan Francisco De Ávila Alfaro) Tj ET
+q 0.60 w 0.820 0.840 0.860 RG 372.00 653.30 198.00 18.57 re S Q
+BT /F1 8.20 Tf 0.070 0.090 0.150 rg 1 0 0 1 377.00 660.69 Tm (Desarrollador Backend y Base de Datos) Tj ET
+q 0.60 w 0.820 0.840 0.860 RG 42.00 634.73 330.00 18.57 re S Q
+BT /F1 8.20 Tf 0.070 0.090 0.150 rg 1 0 0 1 47.00 642.13 Tm (Jorge Isaac Hincapié Pautt) Tj ET
+q 0.60 w 0.820 0.840 0.860 RG 372.00 634.73 198.00 18.57 re S Q
+BT /F1 8.20 Tf 0.070 0.090 0.150 rg 1 0 0 1 377.00 642.13 Tm (Desarrollador Frontend y QA \(Pruebas\)) Tj ET
+q 0.60 w 0.820 0.840 0.860 RG 42.00 616.16 330.00 18.57 re S Q
+BT /F1 8.20 Tf 0.070 0.090 0.150 rg 1 0 0 1 47.00 623.56 Tm (—) Tj ET
+q 0.60 w 0.820 0.840 0.860 RG 372.00 616.16 198.00 18.57 re S Q
+BT /F1 8.20 Tf 0.070 0.090 0.150 rg 1 0 0 1 377.00 623.56 Tm (—) Tj ET
+BT /F2 8.80 Tf 0.070 0.090 0.150 rg 1 0 0 1 42.00 603.16 Tm (Pruebas:) Tj ET
+BT /F1 8.80 Tf 0.070 0.090 0.150 rg 1 0 0 1 84.00 603.16 Tm (todas parten de los datos iniciales. T01–T08 corresponden a la versión inicial; N01–N02, al cambio.) Tj ET
+BT /F1 8.80 Tf 0.070 0.090 0.150 rg 1 0 0 1 42.00 592.16 Tm (Escriban ACEPTADA o RECHAZADA, o A/R.) Tj ET
+q 0.898 0.906 0.922 rg 42.00 558.01 84.00 27.15 re f Q
+q 0.60 w 0.820 0.840 0.860 RG 42.00 558.01 84.00 27.15 re S Q
+BT /F2 7.70 Tf 0.070 0.090 0.150 rg 1 0 0 1 47.00 569.66 Tm (ID y regla) Tj ET
+q 0.898 0.906 0.922 rg 126.00 558.01 192.00 27.15 re f Q
+q 0.60 w 0.820 0.840 0.860 RG 126.00 558.01 192.00 27.15 re S Q
+BT /F2 7.70 Tf 0.070 0.090 0.150 rg 1 0 0 1 131.00 574.25 Tm (Sala, personas, inicio y fin \(Entrada del) Tj ET
+BT /F2 7.70 Tf 0.070 0.090 0.150 rg 1 0 0 1 131.00 565.07 Tm (proyecto\)) Tj ET
+q 0.898 0.906 0.922 rg 318.00 558.01 62.00 27.15 re f Q
+q 0.60 w 0.820 0.840 0.860 RG 318.00 558.01 62.00 27.15 re S Q
+BT /F2 7.70 Tf 0.070 0.090 0.150 rg 1 0 0 1 331.62 569.66 Tm (Esperado) Tj ET
+q 0.898 0.906 0.922 rg 380.00 558.01 148.00 27.15 re f Q
+q 0.60 w 0.820 0.840 0.860 RG 380.00 558.01 148.00 27.15 re S Q
+BT /F2 7.70 Tf 0.070 0.090 0.150 rg 1 0 0 1 385.00 569.66 Tm (Obtenido y línea) Tj ET
+q 0.898 0.906 0.922 rg 528.00 558.01 42.00 27.15 re f Q
+q 0.60 w 0.820 0.840 0.860 RG 528.00 558.01 42.00 27.15 re S Q
+BT /F2 7.70 Tf 0.070 0.090 0.150 rg 1 0 0 1 535.82 569.66 Tm (¿Pasa?) Tj ET
+q 0.60 w 0.820 0.840 0.860 RG 42.00 523.68 84.00 34.33 re S Q
+BT /F2 7.40 Tf 0.070 0.090 0.150 rg 1 0 0 1 47.00 548.32 Tm (T01) Tj ET
+BT /F1 6.90 Tf 0.250 0.290 0.350 rg 1 0 0 1 47.00 539.14 Tm (\(RF-01 Dominio) Tj ET
+BT /F1 6.90 Tf 0.250 0.290 0.350 rg 1 0 0 1 47.00 529.97 Tm (UTB\)) Tj ET
+q 0.60 w 0.820 0.840 0.860 RG 126.00 523.68 192.00 34.33 re S Q
+BT /F1 7.40 Tf 0.070 0.090 0.150 rg 1 0 0 1 131.00 543.73 Tm (POST /usuarios/registro | Ana García,) Tj ET
+BT /F1 7.40 Tf 0.070 0.090 0.150 rg 1 0 0 1 131.00 534.55 Tm (ana@utb.edu.co, pass 'Secreto123') Tj ET
+q 0.60 w 0.820 0.840 0.860 RG 318.00 523.68 62.00 34.33 re S Q
+BT /F2 7.40 Tf 0.070 0.090 0.150 rg 1 0 0 1 328.49 539.14 Tm (ACEPTADA) Tj ET
+q 0.60 w 0.820 0.840 0.860 RG 380.00 523.68 148.00 34.33 re S Q
+BT /F1 7.40 Tf 0.070 0.090 0.150 rg 1 0 0 1 385.00 543.73 Tm (ACEPTADA \(HTTP 201 — usuarios.py,) Tj ET
+BT /F1 7.40 Tf 0.070 0.090 0.150 rg 1 0 0 1 385.00 534.55 Tm (lín. 80\)) Tj ET
+q 0.60 w 0.820 0.840 0.860 RG 528.00 523.68 42.00 34.33 re S Q
+BT /F2 7.40 Tf 0.070 0.090 0.150 rg 1 0 0 1 544.42 539.14 Tm (Sí) Tj ET
+q 0.60 w 0.820 0.840 0.860 RG 42.00 489.35 84.00 34.33 re S Q
+BT /F2 7.40 Tf 0.070 0.090 0.150 rg 1 0 0 1 47.00 513.99 Tm (T02) Tj ET
+BT /F1 6.90 Tf 0.250 0.290 0.350 rg 1 0 0 1 47.00 504.81 Tm (\(RF-01 Correo) Tj ET
+BT /F1 6.90 Tf 0.250 0.290 0.350 rg 1 0 0 1 47.00 495.64 Tm (ext.\)) Tj ET
+q 0.60 w 0.820 0.840 0.860 RG 126.00 489.35 192.00 34.33 re S Q
+BT /F1 7.40 Tf 0.070 0.090 0.150 rg 1 0 0 1 131.00 509.40 Tm (POST /usuarios/registro | Pedro, pedro@gmail.com,) Tj ET
+BT /F1 7.40 Tf 0.070 0.090 0.150 rg 1 0 0 1 131.00 500.23 Tm (pass 'Secreto123') Tj ET
+q 0.60 w 0.820 0.840 0.860 RG 318.00 489.35 62.00 34.33 re S Q
+BT /F2 7.40 Tf 0.070 0.090 0.150 rg 1 0 0 1 325.92 504.81 Tm (RECHAZADA) Tj ET
+q 0.60 w 0.820 0.840 0.860 RG 380.00 489.35 148.00 34.33 re S Q
+BT /F1 7.40 Tf 0.070 0.090 0.150 rg 1 0 0 1 385.00 509.40 Tm (RECHAZADA \(HTTP 400 — usuarios.py,) Tj ET
+BT /F1 7.40 Tf 0.070 0.090 0.150 rg 1 0 0 1 385.00 500.23 Tm (lín. 58–62\)) Tj ET
+q 0.60 w 0.820 0.840 0.860 RG 528.00 489.35 42.00 34.33 re S Q
+BT /F2 7.40 Tf 0.070 0.090 0.150 rg 1 0 0 1 544.42 504.81 Tm (Sí) Tj ET
+q 0.60 w 0.820 0.840 0.860 RG 42.00 464.20 84.00 25.15 re S Q
+BT /F2 7.40 Tf 0.070 0.090 0.150 rg 1 0 0 1 47.00 479.66 Tm (T03) Tj ET
+BT /F1 6.90 Tf 0.250 0.290 0.350 rg 1 0 0 1 47.00 470.49 Tm (\(RF-02 Publicar\)) Tj ET
+q 0.60 w 0.820 0.840 0.860 RG 126.00 464.20 192.00 25.15 re S Q
+BT /F1 7.40 Tf 0.070 0.090 0.150 rg 1 0 0 1 131.00 479.66 Tm (POST /publicaciones/ | luis@utb.edu.co \(JWT\) |) Tj ET
+BT /F1 7.40 Tf 0.070 0.090 0.150 rg 1 0 0 1 131.00 470.49 Tm ('Tutoría de cálculo', $50.000) Tj ET
+q 0.60 w 0.820 0.840 0.860 RG 318.00 464.20 62.00 25.15 re S Q
+BT /F2 7.40 Tf 0.070 0.090 0.150 rg 1 0 0 1 328.49 475.07 Tm (ACEPTADA) Tj ET
+q 0.60 w 0.820 0.840 0.860 RG 380.00 464.20 148.00 25.15 re S Q
+BT /F1 7.40 Tf 0.070 0.090 0.150 rg 1 0 0 1 385.00 479.66 Tm (ACEPTADA \(HTTP 201 —) Tj ET
+BT /F1 7.40 Tf 0.070 0.090 0.150 rg 1 0 0 1 385.00 470.49 Tm (publicaciones.py, lín. 42\)) Tj ET
+q 0.60 w 0.820 0.840 0.860 RG 528.00 464.20 42.00 25.15 re S Q
+BT /F2 7.40 Tf 0.070 0.090 0.150 rg 1 0 0 1 544.42 475.07 Tm (Sí) Tj ET
+q 0.60 w 0.820 0.840 0.860 RG 42.00 439.05 84.00 25.15 re S Q
+BT /F2 7.40 Tf 0.070 0.090 0.150 rg 1 0 0 1 47.00 454.51 Tm (T04) Tj ET
+BT /F1 6.90 Tf 0.250 0.290 0.350 rg 1 0 0 1 47.00 445.33 Tm (\(RF-05 Sin sesión\)) Tj ET
+q 0.60 w 0.820 0.840 0.860 RG 126.00 439.05 192.00 25.15 re S Q
+BT /F1 7.40 Tf 0.070 0.090 0.150 rg 1 0 0 1 131.00 454.51 Tm (POST /compras/ | Usuario anónimo \(sin JWT\) |) Tj ET
+BT /F1 7.40 Tf 0.070 0.090 0.150 rg 1 0 0 1 131.00 445.33 Tm ('Libro Activo Test', cant.=1) Tj ET
+q 0.60 w 0.820 0.840 0.860 RG 318.00 439.05 62.00 25.15 re S Q
+BT /F2 7.40 Tf 0.070 0.090 0.150 rg 1 0 0 1 325.92 449.92 Tm (RECHAZADA) Tj ET
+q 0.60 w 0.820 0.840 0.860 RG 380.00 439.05 148.00 25.15 re S Q
+BT /F1 7.40 Tf 0.070 0.090 0.150 rg 1 0 0 1 385.00 454.51 Tm (RECHAZADA \(HTTP 401 — usuarios.py,) Tj ET
+BT /F1 7.40 Tf 0.070 0.090 0.150 rg 1 0 0 1 385.00 445.33 Tm (lín. 36–43\)) Tj ET
+q 0.60 w 0.820 0.840 0.860 RG 528.00 439.05 42.00 25.15 re S Q
+BT /F2 7.40 Tf 0.070 0.090 0.150 rg 1 0 0 1 544.42 449.92 Tm (Sí) Tj ET
+q 0.60 w 0.820 0.840 0.860 RG 42.00 413.90 84.00 25.15 re S Q
+BT /F2 7.40 Tf 0.070 0.090 0.150 rg 1 0 0 1 47.00 429.36 Tm (T05) Tj ET
+BT /F1 6.90 Tf 0.250 0.290 0.350 rg 1 0 0 1 47.00 420.18 Tm (\(RF-05 Bloqueada\)) Tj ET
+q 0.60 w 0.820 0.840 0.860 RG 126.00 413.90 192.00 25.15 re S Q
+BT /F1 7.40 Tf 0.070 0.090 0.150 rg 1 0 0 1 131.00 429.36 Tm (POST /compras/ | comprador_test \(JWT\) | 'Articulo) Tj ET
+BT /F1 7.40 Tf 0.070 0.090 0.150 rg 1 0 0 1 131.00 420.18 Tm (Bloqueado Test' \(bloqueada\), cant.=1) Tj ET
+q 0.60 w 0.820 0.840 0.860 RG 318.00 413.90 62.00 25.15 re S Q
+BT /F2 7.40 Tf 0.070 0.090 0.150 rg 1 0 0 1 325.92 424.77 Tm (RECHAZADA) Tj ET
+q 0.60 w 0.820 0.840 0.860 RG 380.00 413.90 148.00 25.15 re S Q
+BT /F1 7.40 Tf 0.070 0.090 0.150 rg 1 0 0 1 385.00 429.36 Tm (RECHAZADA \(HTTP 400 — compras.py,) Tj ET
+BT /F1 7.40 Tf 0.070 0.090 0.150 rg 1 0 0 1 385.00 420.18 Tm (lín. 82–86\)) Tj ET
+q 0.60 w 0.820 0.840 0.860 RG 528.00 413.90 42.00 25.15 re S Q
+BT /F2 7.40 Tf 0.070 0.090 0.150 rg 1 0 0 1 544.42 424.77 Tm (Sí) Tj ET
+q 0.60 w 0.820 0.840 0.860 RG 42.00 379.57 84.00 34.33 re S Q
+BT /F2 7.40 Tf 0.070 0.090 0.150 rg 1 0 0 1 47.00 404.21 Tm (T06) Tj ET
+BT /F1 6.90 Tf 0.250 0.290 0.350 rg 1 0 0 1 47.00 395.03 Tm (\(RF-05 Compra) Tj ET
+BT /F1 6.90 Tf 0.250 0.290 0.350 rg 1 0 0 1 47.00 385.85 Tm (activa\)) Tj ET
+q 0.60 w 0.820 0.840 0.860 RG 126.00 379.57 192.00 34.33 re S Q
+BT /F1 7.40 Tf 0.070 0.090 0.150 rg 1 0 0 1 131.00 399.62 Tm (POST /compras/ | comprador_test \(JWT\) | 'Libro) Tj ET
+BT /F1 7.40 Tf 0.070 0.090 0.150 rg 1 0 0 1 131.00 390.44 Tm (Activo Test' \($45.000, activa\), cant.=2) Tj ET
+q 0.60 w 0.820 0.840 0.860 RG 318.00 379.57 62.00 34.33 re S Q
+BT /F2 7.40 Tf 0.070 0.090 0.150 rg 1 0 0 1 328.49 395.03 Tm (ACEPTADA) Tj ET
+q 0.60 w 0.820 0.840 0.860 RG 380.00 379.57 148.00 34.33 re S Q
+BT /F1 7.40 Tf 0.070 0.090 0.150 rg 1 0 0 1 385.00 399.62 Tm (ACEPTADA \(HTTP 201 — compras.py,) Tj ET
+BT /F1 7.40 Tf 0.070 0.090 0.150 rg 1 0 0 1 385.00 390.44 Tm (lín. 120 y 145\)) Tj ET
+q 0.60 w 0.820 0.840 0.860 RG 528.00 379.57 42.00 34.33 re S Q
+BT /F2 7.40 Tf 0.070 0.090 0.150 rg 1 0 0 1 544.42 395.03 Tm (Sí) Tj ET
+q 0.60 w 0.820 0.840 0.860 RG 42.00 345.24 84.00 34.33 re S Q
+BT /F2 7.40 Tf 0.070 0.090 0.150 rg 1 0 0 1 47.00 369.88 Tm (T07) Tj ET
+BT /F1 6.90 Tf 0.250 0.290 0.350 rg 1 0 0 1 47.00 360.70 Tm (\(RF-06) Tj ET
+BT /F1 6.90 Tf 0.250 0.290 0.350 rg 1 0 0 1 47.00 351.53 Tm (Autoreseña\)) Tj ET
+q 0.60 w 0.820 0.840 0.860 RG 126.00 345.24 192.00 34.33 re S Q
+BT /F1 7.40 Tf 0.070 0.090 0.150 rg 1 0 0 1 131.00 365.29 Tm (POST /resenas/ | miguel@utb.edu.co \(JWT\) |) Tj ET
+BT /F1 7.40 Tf 0.070 0.090 0.150 rg 1 0 0 1 131.00 356.11 Tm (calificado_id=miguel.id, punt.=5) Tj ET
+q 0.60 w 0.820 0.840 0.860 RG 318.00 345.24 62.00 34.33 re S Q
+BT /F2 7.40 Tf 0.070 0.090 0.150 rg 1 0 0 1 325.92 360.70 Tm (RECHAZADA) Tj ET
+q 0.60 w 0.820 0.840 0.860 RG 380.00 345.24 148.00 34.33 re S Q
+BT /F1 7.40 Tf 0.070 0.090 0.150 rg 1 0 0 1 385.00 365.29 Tm (RECHAZADA \(HTTP 400 — resenas.py,) Tj ET
+BT /F1 7.40 Tf 0.070 0.090 0.150 rg 1 0 0 1 385.00 356.11 Tm (lín. 29–30\)) Tj ET
+q 0.60 w 0.820 0.840 0.860 RG 528.00 345.24 42.00 34.33 re S Q
+BT /F2 7.40 Tf 0.070 0.090 0.150 rg 1 0 0 1 544.42 360.70 Tm (Sí) Tj ET
+q 0.60 w 0.820 0.840 0.860 RG 42.00 320.09 84.00 25.15 re S Q
+BT /F2 7.40 Tf 0.070 0.090 0.150 rg 1 0 0 1 47.00 335.55 Tm (T08) Tj ET
+BT /F1 6.90 Tf 0.250 0.290 0.350 rg 1 0 0 1 47.00 326.37 Tm (\(RF-07 Solo Mod.\)) Tj ET
+q 0.60 w 0.820 0.840 0.860 RG 126.00 320.09 192.00 25.15 re S Q
+BT /F1 7.40 Tf 0.070 0.090 0.150 rg 1 0 0 1 131.00 335.55 Tm (GET /moderacion/stats | Usuario sin token / sin rol) Tj ET
+BT /F1 7.40 Tf 0.070 0.090 0.150 rg 1 0 0 1 131.00 326.37 Tm (es_administrador) Tj ET
+q 0.60 w 0.820 0.840 0.860 RG 318.00 320.09 62.00 25.15 re S Q
+BT /F2 7.40 Tf 0.070 0.090 0.150 rg 1 0 0 1 325.92 330.96 Tm (RECHAZADA) Tj ET
+q 0.60 w 0.820 0.840 0.860 RG 380.00 320.09 148.00 25.15 re S Q
+BT /F1 7.40 Tf 0.070 0.090 0.150 rg 1 0 0 1 385.00 335.55 Tm (RECHAZADA \(HTTP 401/403 —) Tj ET
+BT /F1 7.40 Tf 0.070 0.090 0.150 rg 1 0 0 1 385.00 326.37 Tm (moderacion.py, lín. 52–56\)) Tj ET
+q 0.60 w 0.820 0.840 0.860 RG 528.00 320.09 42.00 25.15 re S Q
+BT /F2 7.40 Tf 0.070 0.090 0.150 rg 1 0 0 1 544.42 330.96 Tm (Sí) Tj ET
+q 0.60 w 0.820 0.840 0.860 RG 42.00 285.76 84.00 34.33 re S Q
+BT /F2 7.40 Tf 0.070 0.090 0.150 rg 1 0 0 1 47.00 310.40 Tm (N01) Tj ET
+BT /F1 6.90 Tf 0.250 0.290 0.350 rg 1 0 0 1 47.00 301.22 Tm (\(Cambio: Chat) Tj ET
+BT /F1 6.90 Tf 0.250 0.290 0.350 rg 1 0 0 1 47.00 292.05 Tm (único\)) Tj ET
+q 0.60 w 0.820 0.840 0.860 RG 126.00 285.76 192.00 34.33 re S Q
+BT /F1 7.40 Tf 0.070 0.090 0.150 rg 1 0 0 1 131.00 310.40 Tm (POST y GET) Tj ET
+BT /F1 7.40 Tf 0.070 0.090 0.150 rg 1 0 0 1 131.00 301.22 Tm (/chat/mensajes/{id}?publicacion_id=pub_a | Hilos A) Tj ET
+BT /F1 7.40 Tf 0.070 0.090 0.150 rg 1 0 0 1 131.00 292.05 Tm (y B mismo vendedor) Tj ET
+q 0.60 w 0.820 0.840 0.860 RG 318.00 285.76 62.00 34.33 re S Q
+BT /F2 7.40 Tf 0.070 0.090 0.150 rg 1 0 0 1 328.49 301.22 Tm (ACEPTADA) Tj ET
+q 0.60 w 0.820 0.840 0.860 RG 380.00 285.76 148.00 34.33 re S Q
+BT /F1 7.40 Tf 0.070 0.090 0.150 rg 1 0 0 1 385.00 305.81 Tm (ACEPTADA \(Hilos aislados — chat.py,) Tj ET
+BT /F1 7.40 Tf 0.070 0.090 0.150 rg 1 0 0 1 385.00 296.63 Tm (lín. 127 y 225\)) Tj ET
+q 0.60 w 0.820 0.840 0.860 RG 528.00 285.76 42.00 34.33 re S Q
+BT /F2 7.40 Tf 0.070 0.090 0.150 rg 1 0 0 1 544.42 301.22 Tm (Sí) Tj ET
+q 0.60 w 0.820 0.840 0.860 RG 42.00 251.43 84.00 34.33 re S Q
+BT /F2 7.40 Tf 0.070 0.090 0.150 rg 1 0 0 1 47.00 276.07 Tm (N02) Tj ET
+BT /F1 6.90 Tf 0.250 0.290 0.350 rg 1 0 0 1 47.00 266.89 Tm (\(Cambio: Borrado) Tj ET
+BT /F1 6.90 Tf 0.250 0.290 0.350 rg 1 0 0 1 47.00 257.72 Tm (Mod.\)) Tj ET
+q 0.60 w 0.820 0.840 0.860 RG 126.00 251.43 192.00 34.33 re S Q
+BT /F1 7.40 Tf 0.070 0.090 0.150 rg 1 0 0 1 131.00 271.48 Tm (DELETE /moderacion/publicaciones/{id} + GET) Tj ET
+BT /F1 7.40 Tf 0.070 0.090 0.150 rg 1 0 0 1 131.00 262.31 Tm (/listings/ | moderador_test elimina pub.) Tj ET
+q 0.60 w 0.820 0.840 0.860 RG 318.00 251.43 62.00 34.33 re S Q
+BT /F2 7.40 Tf 0.070 0.090 0.150 rg 1 0 0 1 328.49 266.89 Tm (ACEPTADA) Tj ET
+q 0.60 w 0.820 0.840 0.860 RG 380.00 251.43 148.00 34.33 re S Q
+BT /F1 7.40 Tf 0.070 0.090 0.150 rg 1 0 0 1 385.00 271.48 Tm (ACEPTADA \(Oculta al instante —) Tj ET
+BT /F1 7.40 Tf 0.070 0.090 0.150 rg 1 0 0 1 385.00 262.31 Tm (moderacion.py, lín. 100 y 159\)) Tj ET
+q 0.60 w 0.820 0.840 0.860 RG 528.00 251.43 42.00 34.33 re S Q
+BT /F2 7.40 Tf 0.070 0.090 0.150 rg 1 0 0 1 544.42 266.89 Tm (Sí) Tj ET
+BT /F2 8.80 Tf 0.070 0.090 0.150 rg 1 0 0 1 42.00 238.43 Tm (Regresión:) Tj ET
+BT /F1 8.80 Tf 0.070 0.090 0.150 rg 1 0 0 1 92.00 238.43 Tm (repitan dos pruebas anteriores sobre el ajuste. Justifiquen su selección.) Tj ET
+q 0.898 0.906 0.922 rg 42.00 203.48 36.00 27.95 re f Q
+q 0.60 w 0.820 0.840 0.860 RG 42.00 203.48 36.00 27.95 re S Q
+BT /F2 7.70 Tf 0.070 0.090 0.150 rg 1 0 0 1 54.66 215.53 Tm (ID) Tj ET
+q 0.898 0.906 0.922 rg 78.00 203.48 266.00 27.95 re f Q
+q 0.60 w 0.820 0.840 0.860 RG 78.00 203.48 266.00 27.95 re S Q
+BT /F2 7.70 Tf 0.070 0.090 0.150 rg 1 0 0 1 83.00 215.53 Tm (Motivo para repetir) Tj ET
+q 0.898 0.906 0.922 rg 344.00 203.48 86.00 27.95 re f Q
+q 0.60 w 0.820 0.840 0.860 RG 344.00 203.48 86.00 27.95 re S Q
+BT /F2 7.70 Tf 0.070 0.090 0.150 rg 1 0 0 1 360.08 220.12 Tm (Esperado tras) Tj ET
+BT /F2 7.70 Tf 0.070 0.090 0.150 rg 1 0 0 1 375.36 210.94 Tm (cambio) Tj ET
+q 0.898 0.906 0.922 rg 430.00 203.48 140.00 27.95 re f Q
+q 0.60 w 0.820 0.840 0.860 RG 430.00 203.48 140.00 27.95 re S Q
+BT /F2 7.70 Tf 0.070 0.090 0.150 rg 1 0 0 1 435.00 215.53 Tm (Obtenido) Tj ET
+q 0.60 w 0.820 0.840 0.860 RG 42.00 168.35 36.00 35.13 re S Q
+BT /F2 7.40 Tf 0.070 0.090 0.150 rg 1 0 0 1 53.40 184.21 Tm (T05) Tj ET
+q 0.60 w 0.820 0.840 0.860 RG 78.00 168.35 266.00 35.13 re S Q
+BT /F1 7.40 Tf 0.070 0.090 0.150 rg 1 0 0 1 83.00 193.39 Tm (El ajuste modificó el filtrado de estados visibles en moderación) Tj ET
+BT /F1 7.40 Tf 0.070 0.090 0.150 rg 1 0 0 1 83.00 184.21 Tm (\(_no_eliminada en moderacion.py\) y la sincronización del catálogo; se) Tj ET
+BT /F1 7.40 Tf 0.070 0.090 0.150 rg 1 0 0 1 83.00 175.04 Tm (verifica que un artículo 'bloqueada' siga impidiendo la compra.) Tj ET
+q 0.60 w 0.820 0.840 0.860 RG 344.00 168.35 86.00 35.13 re S Q
+BT /F2 7.40 Tf 0.070 0.090 0.150 rg 1 0 0 1 363.92 184.21 Tm (RECHAZADA) Tj ET
+q 0.60 w 0.820 0.840 0.860 RG 430.00 168.35 140.00 35.13 re S Q
+BT /F1 7.40 Tf 0.070 0.090 0.150 rg 1 0 0 1 435.00 188.80 Tm (RECHAZADA \(HTTP 400 —) Tj ET
+BT /F1 7.40 Tf 0.070 0.090 0.150 rg 1 0 0 1 435.00 179.63 Tm (compras.py, lín. 82–86; pasa\)) Tj ET
+q 0.60 w 0.820 0.840 0.860 RG 42.00 124.05 36.00 44.30 re S Q
+BT /F2 7.40 Tf 0.070 0.090 0.150 rg 1 0 0 1 53.40 144.50 Tm (T06) Tj ET
+q 0.60 w 0.820 0.840 0.860 RG 78.00 124.05 266.00 44.30 re S Q
+BT /F1 7.40 Tf 0.070 0.090 0.150 rg 1 0 0 1 83.00 158.26 Tm (El cambio reestructuró chat.py para separar hilos por \(otro_usuario_id,) Tj ET
+BT /F1 7.40 Tf 0.070 0.090 0.150 rg 1 0 0 1 83.00 149.09 Tm (publicacion_id\); como POST /compras/ inserta un mensaje automático con) Tj ET
+BT /F1 7.40 Tf 0.070 0.090 0.150 rg 1 0 0 1 83.00 139.91 Tm (publicacion_id al vender \(compras.py, lín. 130–143\), se valida que no se) Tj ET
+BT /F1 7.40 Tf 0.070 0.090 0.150 rg 1 0 0 1 83.00 130.73 Tm (rompa la compra ni el chat.) Tj ET
+q 0.60 w 0.820 0.840 0.860 RG 344.00 124.05 86.00 44.30 re S Q
+BT /F2 7.40 Tf 0.070 0.090 0.150 rg 1 0 0 1 366.49 144.50 Tm (ACEPTADA) Tj ET
+q 0.60 w 0.820 0.840 0.860 RG 430.00 124.05 140.00 44.30 re S Q
+BT /F1 7.40 Tf 0.070 0.090 0.150 rg 1 0 0 1 435.00 149.09 Tm (ACEPTADA \(HTTP 201 — compras.py,) Tj ET
+BT /F1 7.40 Tf 0.070 0.090 0.150 rg 1 0 0 1 435.00 139.91 Tm (lín. 145 / chat.py, lín. 225; pasa\)) Tj ET
+BT /F1 8.30 Tf 0.220 0.250 0.310 rg 1 0 0 1 42.00 26.00 Tm (Pruebas de software) Tj ET
+BT /F2 9.20 Tf 0.070 0.090 0.150 rg 1 0 0 1 134.00 26.00 Tm (Página 4) Tj ET
+endstream
+endobj
+xref
+0 7
+0000000000 65535 f 
+0000000015 00000 n 
+0000000064 00000 n 
+0000000121 00000 n 
+0000000257 00000 n 
+0000000354 00000 n 
+0000000456 00000 n 
+trailer
+<< /Size 7 /Root 1 0 R >>
+startxref
+18522
+%%EOF
